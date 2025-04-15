@@ -2,7 +2,7 @@
 #include "my_lib.h"
 
 int main() {
-    Array<int> ar(10);
+    cont::Array<int, 10> ar;
     ar[0] = 1;
     ar[1] = 2;
     ar[2] = 3;
