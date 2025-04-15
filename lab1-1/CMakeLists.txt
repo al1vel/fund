@@ -9,6 +9,7 @@ set(COMMON_FLAGS
         -Werror
         -fsanitize=address
         -fsanitize=leak
+        -std=c++20
 )
 
 # Флаги для покрытия кода (активны только в Debug)
@@ -17,6 +18,7 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug")
             --coverage
             -fprofile-arcs
             -ftest-coverage
+            -std=c++20
     )
 endif()
 

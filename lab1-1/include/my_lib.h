@@ -3,6 +3,7 @@
 
 #include <cstddef>
 #include <stdexcept>
+#include <compare>
 
 namespace cont {
     template<class T>
