@@ -32,6 +32,18 @@ TEST_F(TestFoo, test_at_bad) {
     ASSERT_THROW(ar.at(10), std::out_of_range);
 }
 
+TEST_F(TestFoo, test_sp) {
+    cont::Array<int, 3> ar1 = {1, 2, 4};
+    cont::Array<int, 3> ar2 = {1, 2, 3};
+    ASSERT_EQ(ar1 < ar2, false);
+}
+
+TEST_F(TestFoo, test_sp2) {
+    cont::Array<int, 3> ar1 = {1, 2, 3};
+    cont::Array<int, 4> ar2 = {1, 2, 3, 4};
+    ASSERT_EQ(ar1 < ar2, true);
+}
+
 int main(int argc, char **argv) {
     ::testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();

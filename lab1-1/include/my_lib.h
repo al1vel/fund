@@ -17,9 +17,9 @@ namespace cont {
 
         MyContainer &operator=(const MyContainer &other) = default;
 
-        virtual bool operator==(const MyContainer &other) const = 0;
-
-        virtual bool operator!=(const MyContainer &other) const = 0;
+        // virtual bool operator==(const MyContainer &other) const = 0;
+        //
+        // virtual bool operator!=(const MyContainer &other) const = 0;
 
         [[nodiscard]] virtual std::size_t size() const = 0;
 
@@ -31,6 +31,10 @@ namespace cont {
 
     template<class T, std::size_t N>
     class Array : public MyContainer<T> {
+
+
+        template<class Type, std::size_t>
+        friend class Array;
     protected:
         std::size_t cap = 0;
         T *data = nullptr;
@@ -258,33 +262,36 @@ namespace cont {
             }
         }
 
-        bool operator==(const MyContainer<T>& other) const override {
-            const auto* otherArr = dynamic_cast<const Array*>(&other);
-            if (this->cap != otherArr->cap) {
-                return false;
-            }
-            for (std::size_t i = 0; i < this->cap; i++) {
-                if (this->data[i] != otherArr->data[i]) {
-                    return false;
-                }
-            }
-            return true;
-        }
+        // bool operator==(const MyContainer<T>& other) const override {
+        //     const auto* otherArr = dynamic_cast<const Array*>(&other);
+        //     if (this->cap != otherArr->cap) {
+        //         return false;
+        //     }
+        //     for (std::size_t i = 0; i < this->cap; i++) {
+        //         if (this->data[i] != otherArr->data[i]) {
+        //             return false;
+        //         }
+        //     }
+        //     return true;
+        // }
+        //
+        // bool operator!=(const MyContainer<T>& other) const override {
+        //     return !(*this == other);
+        // }
 
-        bool operator!=(const MyContainer<T>& other) const override {
-            return !(*this == other);
-        }
-
-        std::strong_ordering operator<=>(const Array& other) const {
-            if (auto cmp = this.cap <=> other.cap; cmp != 0) {
-                return cmp;
-            }
-
-            for (std::size_t i = 0; i < this->cap; i++) {
-                if (auto cmp = this.data[i] <=> other.data[i]; cmp != 0) {
+        template<std::size_t N2>
+        std::strong_ordering operator<=>(const Array<T, N2>& other) const {
+            std::size_t n = std::min(N, N2);
+            for (std::size_t i = 0; i < n; i++) {
+                if (auto cmp = this->data[i] <=> other.data[i]; cmp != 0) {
                     return cmp;
                 }
             }
+
+            if (auto cmp = this->cap <=> other.cap; cmp != 0) {
+                return cmp;
+            }
+
             return std::strong_ordering::equal;
         }
     };

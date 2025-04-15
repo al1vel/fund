@@ -69,7 +69,7 @@ find_program(CPPCHECK cppcheck)
 
 if(CPPCHECK)
     add_custom_target(cppcheck
-            COMMAND ${CPPCHECK} --enable=all --inconclusive --quiet --suppress=missingIncludeSystem -I include src test
+            COMMAND ${CPPCHECK} -std=c++20 --enable=all --inconclusive --quiet --suppress=missingIncludeSystem -I include src test
             COMMENT "Запуск cppcheck..."
             WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
             VERBATIM
