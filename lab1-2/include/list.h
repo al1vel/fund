@@ -69,12 +69,11 @@ namespace cont {
         }
 
         void deleteList() {
-            Node *node = head->next;
-            while (node != nullptr) {
-                allocator.deallocate(node, sizeof(Node));
-                node = node->next;
+            while (head != nullptr) {
+                Node *next = head->next;
+                allocator.deallocate(head, sizeof(Node));
+                head = next;
             }
-            allocator.deallocate(head, sizeof(Node));
             head = nullptr;
             tail = nullptr;
             size = 0;
@@ -89,7 +88,9 @@ namespace cont {
 
         List(std::initializer_list<T> init) {
             createHead(*(init.begin()));
-            for (auto it = init.begin(); it != init.end(); ++it) {
+            auto it = init.begin();
+            ++it;
+            for (; it != init.end(); ++it) {
                 pushBack(*it);
             }
         }
@@ -168,9 +169,11 @@ namespace cont {
             explicit ListIterator(Node *ptr) : ptr(ptr) {
             }
 
-            ListIterator(const ListIterator &other) = default;
+
 
         public:
+            ListIterator(const ListIterator &other) = default;
+
             ListIterator(ListIterator &&other) = default;
 
             ListIterator &operator++() {
@@ -183,14 +186,16 @@ namespace cont {
                 return *this;
             }
 
-            ListIterator &operator++(int) {
+            ListIterator operator++(int) {
+                ListIterator tmp = *this;
                 ptr = ptr->next;
-                return ptr->prev;
+                return tmp;
             }
 
-            ListIterator &operator--(int) {
+            ListIterator operator--(int) {
+                ListIterator tmp = *this;
                 ptr = ptr->prev;
-                return ptr->next;
+                return tmp;
             }
 
             bool operator==(const ListIterator &other) const {
@@ -203,6 +208,16 @@ namespace cont {
 
             T &operator*() {
                 return ptr->data;
+            }
+
+            ListIterator &next(std::size_t offset = 1) {
+                for (std::size_t i = 0; i < offset; i++) {
+                    if (ptr == nullptr) {
+                        throw std::out_of_range("ListIterator::next. Offset is out of the collection.");
+                    }
+                    ptr = ptr->next;
+                }
+                return *this;
             }
         };
 
@@ -232,14 +247,16 @@ namespace cont {
                 return *this;
             }
 
-            ReverseListIterator &operator++(int) {
+            ReverseListIterator operator++(int) {
+                ReverseListIterator tmp = *this;
                 ptr = ptr->prev;
-                return ptr->next;
+                return tmp;
             }
 
-            ReverseListIterator &operator--(int) {
+            ReverseListIterator operator--(int) {
+                ReverseListIterator tmp = *this;
                 ptr = ptr->next;
-                return ptr->prev;
+                return tmp;
             }
 
             bool operator==(const ReverseListIterator &other) const {
@@ -304,7 +321,23 @@ namespace cont {
             deleteList();
         }
 
-
+        void insert(ConstIterator posIter, const T val) {
+            if (posIter.ptr == head) {
+                Node* h = head;
+                std::size_t s = size;
+                createHead(val);
+                head->next = h;
+                this->size += s;
+            } else {
+                Node* node = posIter.ptr;
+                Node* newNode = createNode(val);
+                node->next->prev = newNode;
+                newNode->next = node->next;
+                newNode->prev = node;
+                node->next = newNode;
+                size++;
+            }
+        }
     };
 }
 
