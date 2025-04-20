@@ -25,10 +25,102 @@ int main() {
     std::cout << std::endl;
 
     list2.insert(list2.cbegin(), 10);
+    //list2.insert(list2.cbegin(), 12);
     list2.insert(list2.cbegin().next(1), 12);
 
     for (auto it = list2.begin(); it != list2.end(); it++) {
         std::cout << *it << " ";
     }
+    std::cout << std::endl << std::endl << "Erasing" << std::endl;
+
+    cont::List<int> a = {1, 2, 3, 4, 5};
+    auto iterRet = a.erase(a.cbegin());
+    for (auto it = a.cbegin(); it != a.cend(); it++) {
+        std::cout << *it << " ";
+    }
     std::cout << std::endl;
+    std::cout << *iterRet << std::endl;
+
+    auto ii = a.erase(a.cbegin().next(2));
+    for (auto it = a.cbegin(); it != a.cend(); it++) {
+        std::cout << *it << " ";
+    }
+    std::cout << std::endl;
+    std::cout << *ii << std::endl;
+
+    a.erase(a.cbegin().next(2));
+    for (auto it = a.cbegin(); it != a.cend(); it++) {
+        std::cout << *it << " ";
+    }
+    std::cout << std::endl;
+
+
+    std::cout << std::endl << "Pop push test" << std::endl;
+    cont::List<int> b;
+    b.push_back(1);
+    b.push_back(2);
+    b.push_back(3);
+    b.push_front(0);
+    b.push_front(-1);
+    b.push_front(-2);
+    b.pop_front();
+    b.pop_back();
+    b.pop_back();
+    b.push_back(2);
+
+    for (auto it = b.cbegin(); it != b.cend(); it++) {
+        std::cout << *it << " ";
+    }
+    std::cout << std::endl;
+
+    std::cout << std::endl << "Resize" << std::endl;
+    cont::List<int> c;
+    c.resize(10, 1);
+    for (auto it = c.cbegin(); it != c.cend(); it++) {
+        std::cout << *it << " ";
+    }
+    std::cout << std::endl;
+
+    c.resize(5, 2);
+    for (auto it = c.cbegin(); it != c.cend(); it++) {
+        std::cout << *it << " ";
+    }
+    std::cout << std::endl;
+
+    c.resize(1, 3);
+    for (auto it = c.cbegin(); it != c.cend(); it++) {
+        std::cout << *it << " ";
+    }
+    std::cout << std::endl;
+
+    c.resize(3, 4);
+    for (auto it = c.cbegin(); it != c.cend(); it++) {
+        std::cout << *it << " ";
+    }
+    std::cout << std::endl;
+
+    c.resize(6);
+    for (auto it = c.cbegin(); it != c.cend(); it++) {
+        std::cout << *it << " ";
+    }
+    std::cout << std::endl;
+
+    std::cout << std::endl << "Swap" << std::endl;
+    cont::List<int> d{1,2,3}, e{10,11,12,13};
+
+    auto it1 = d.begin();
+    auto it2 = e.begin();
+
+    d.swap(e);
+    for (auto it = d.cbegin(); it != d.cend(); it++) {
+        std::cout << *it << " ";
+    }
+    std::cout << std::endl;
+
+    for (auto it = e.cbegin(); it != e.cend(); it++) {
+        std::cout << *it << " ";
+    }
+    std::cout << std::endl;
+
+    std::cout << "d begin: " << *it1 << std::endl << "e begin: " << *it2 << std::endl;
 }

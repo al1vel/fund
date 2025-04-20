@@ -324,19 +324,143 @@ namespace cont {
         void insert(ConstIterator posIter, const T val) {
             if (posIter.ptr == head) {
                 Node* h = head;
-                std::size_t s = size;
-                createHead(val);
-                head->next = h;
-                this->size += s;
-            } else {
-                Node* node = posIter.ptr;
                 Node* newNode = createNode(val);
-                node->next->prev = newNode;
-                newNode->next = node->next;
-                newNode->prev = node;
-                node->next = newNode;
+                newNode->next = h;
+                h->prev = newNode;
+                head = newNode;
+                size++;
+            } else {
+                Node* whereToPut = posIter.ptr;
+                Node* newNode = createNode(val);
+                Node* prev = whereToPut->prev;
+                prev->next = newNode;
+                newNode->next = whereToPut;
+                newNode->prev = prev;
+                whereToPut->prev = newNode;
                 size++;
             }
+        }
+
+        Iterator erase(ConstIterator posIter) {
+            if (posIter.ptr == head) {
+                Node* h = head->next;
+                allocator.deallocate(posIter.ptr, sizeof(Node));
+                head = h;
+                head->prev = nullptr;
+                size--;
+                return Iterator(head);
+            }
+            Node* node = posIter.ptr;
+            Node* next = node->next;
+            Node* prev = node->prev;
+            if (next != nullptr) {
+                prev->next = next;
+                next->prev = prev;
+                allocator.deallocate(node, sizeof(Node));
+                size--;
+                return Iterator(next);
+            }
+            prev->next = nullptr;
+            tail = prev;
+            allocator.deallocate(node, sizeof(Node));
+            size--;
+            return Iterator(nullptr);
+        }
+
+        void push_back(const T val) {
+            Node* node = createNode(val);
+            if (head == nullptr) {
+                head = node;
+                tail = node;
+                size = 1;
+            } else {
+                Node* last = tail;
+                tail->next = node;
+                tail = node;
+                tail->prev = last;
+                size++;
+            }
+        }
+
+        void pop_back() {
+            if (size == 0) {
+                throw std::out_of_range("ListIterator::pop_back. Size is 0");
+            }
+            Node* rem = tail;
+            tail = tail->prev;
+            allocator.deallocate(rem, sizeof(Node));
+            size--;
+            tail->next = nullptr;
+        }
+
+        void push_front(const T val) {
+            Node* node = createNode(val);
+            if (head == nullptr) {
+                head = node;
+                tail = node;
+                size = 1;
+            } else {
+                node->next = head;
+                head->prev = node;
+                head = node;
+                size++;
+            }
+        }
+
+        void pop_front() {
+            if (size == 0) {
+                throw std::out_of_range("ListIterator::pop_front. Size is 0");
+            }
+            Node* rem = head;
+            head = head->next;
+            allocator.deallocate(rem, sizeof(Node));
+            size--;
+            head->prev = nullptr;
+        }
+
+        void resize(std::size_t newSize, const T val = 0) {
+            if (newSize <= 0) {
+                throw std::out_of_range("ListIterator::resize. New size must be more than 0.");
+            }
+            if (size == newSize) {
+                return;
+            }
+            if (size == 0) {
+                createHead(val);
+                while (size != newSize) {
+                    push_back(val);
+                }
+                return;
+            }
+            if (size > newSize) {
+                while (size != newSize) {
+                    pop_back();
+                }
+                return;
+            }
+            if (size < newSize) {
+                while (size != newSize) {
+                    push_back(val);
+                }
+            }
+        }
+
+        void swap(List& other) noexcept {
+            Node*tmpHead = this->head;
+            this->head = other.head;
+            other.head = tmpHead;
+
+            Node* tmpTail = this->tail;
+            this->tail = other.tail;
+            other.tail = tmpTail;
+
+            Allocator tmpAllocator = this->allocator;
+            this->allocator = other.allocator;
+            other.allocator = tmpAllocator;
+
+            std::size_t tmpSize = this->size;
+            this->size = other.size;
+            other.size = tmpSize;
         }
     };
 }
