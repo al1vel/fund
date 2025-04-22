@@ -130,6 +130,21 @@ int main() {
     cont::List<int> l3 = {1,2,10};
 
     std::cout << (l1 == l2) << " " << (l1 == l3) << " " << (l2 == l3) << std::endl;
-    std::cout << (l1 < l2) << (l1 > l2) << (l1 <= l3) << std::endl;
+    std::cout << (l1 < l2) << " " << (l1 > l2) << " " << (l1 <= l3) << std::endl;
+
+    std::cout << std::endl << "Const" << std::endl;
+    cont::List<int> cons = {3, 4, 5};
+    cont::List<int>::ConstIterator cit = cons.cbegin();
+    for (; cit != cons.cend(); cit++) {
+        std::cout << *cit << " ";
+    }
+    std::cout << std::endl;
+
+    cont::List<const int> consts = {3, 4, 5};
+    for (auto it = consts.cbegin(); it != consts.cend(); it++) {
+        std::cout << *it << " ";
+    }
+    std::cout << std::endl;
+
 }
 

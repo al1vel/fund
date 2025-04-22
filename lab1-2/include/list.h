@@ -33,8 +33,9 @@ namespace cont {
     template<class T, class Allocator = std::allocator<T> >
     class List {
     private:
+        using noConstT = std::remove_const_t<T>;
         struct Node {
-            T data;
+            noConstT data;
             Node *next;
             Node *prev;
         };
@@ -46,7 +47,7 @@ namespace cont {
         Node *tail = nullptr;
         std::size_t size = 0;
 
-        void createHead(T val) {
+        void createHead(noConstT val) {
             Node *head = allocator.allocate(sizeof(Node));
             head->data = val;
             head->next = nullptr;
@@ -56,7 +57,7 @@ namespace cont {
             this->size = 1;
         }
 
-        Node *createNode(T val) {
+        Node *createNode(noConstT val) {
             Node *node = allocator.allocate(sizeof(Node));
             node->data = val;
             node->next = nullptr;
@@ -64,7 +65,7 @@ namespace cont {
             return node;
         }
 
-        void pushBack(T val) {
+        void pushBack(noConstT val) {
             Node *node = createNode(val);
             tail->next = node;
             node->prev = tail;
@@ -128,9 +129,10 @@ namespace cont {
                 this->deleteList();
                 this->allocator = other.allocator;
                 createHead(other.head->data);
-                while (other.head->next != nullptr) {
-                    pushBack(other.head->next->data);
-                    other.head = other.head->next;
+                Node *ptr = other.head->next;
+                while (ptr != nullptr) {
+                    pushBack(ptr->data);
+                    ptr = ptr->next;
                 }
             }
             return *this;
@@ -172,8 +174,6 @@ namespace cont {
 
             explicit ListIterator(Node *ptr) : ptr(ptr) {
             }
-
-
 
         public:
             ListIterator(const ListIterator &other) = default;
@@ -298,19 +298,19 @@ namespace cont {
         }
 
         ReverseIterator rbegin() const {
-            return ReverseIterator(nullptr);
-        }
-
-        ReverseIterator rend() const {
             return ReverseIterator(tail);
         }
 
+        ReverseIterator rend() const {
+            return ReverseIterator(nullptr);
+        }
+
         ConstReverseIterator crbegin() const {
-            return ConstReverseIterator(nullptr);
+            return ConstReverseIterator(tail);
         }
 
         ConstReverseIterator crend() const {
-            return ConstReverseIterator(tail);
+            return ConstReverseIterator(nullptr);
         }
 
         [[nodiscard]] bool empty() const {
@@ -325,7 +325,7 @@ namespace cont {
             deleteList();
         }
 
-        void insert(ConstIterator posIter, const T val) {
+        void insert(ConstIterator posIter, noConstT val) {
             if (posIter.ptr == head) {
                 Node* h = head;
                 Node* newNode = createNode(val);
@@ -371,7 +371,7 @@ namespace cont {
             return Iterator(nullptr);
         }
 
-        void push_back(const T val) {
+        void push_back(noConstT val) {
             Node* node = createNode(val);
             if (head == nullptr) {
                 head = node;
@@ -397,7 +397,7 @@ namespace cont {
             tail->next = nullptr;
         }
 
-        void push_front(const T val) {
+        void push_front(noConstT val) {
             Node* node = createNode(val);
             if (head == nullptr) {
                 head = node;
@@ -422,7 +422,7 @@ namespace cont {
             head->prev = nullptr;
         }
 
-        void resize(std::size_t newSize, const T val = 0) {
+        void resize(std::size_t newSize, noConstT val = 0) {
             if (newSize <= 0) {
                 throw std::out_of_range("ListIterator::resize. New size must be more than 0.");
             }

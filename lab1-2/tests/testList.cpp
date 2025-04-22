@@ -17,18 +17,31 @@ protected:
 TEST_F(ListTest, FrontAndBack) {
     EXPECT_EQ(list.front(), 1);
     EXPECT_EQ(list.back(), 3);
+
+    cont::List<int> l;
+    EXPECT_THROW(l.front(), std::out_of_range);
+    EXPECT_THROW(l.back(), std::out_of_range);
 }
 
 TEST_F(ListTest, PushFront) {
     list.push_front(0);
     EXPECT_EQ(list.front(), 0);
     EXPECT_EQ(list.Size(), 4);
+
+    cont::List<int> l;
+    l.push_front(1);
+    EXPECT_EQ(l.front(), 1);
+    EXPECT_EQ(l.back(), 1);
+    EXPECT_EQ(l.Size(), 1);
 }
 
 TEST_F(ListTest, PopFront) {
     list.pop_front();
     EXPECT_EQ(list.front(), 2);
     EXPECT_EQ(list.Size(), 2);
+
+    cont::List<int> l;
+    EXPECT_THROW(l.pop_front(), std::out_of_range);
 }
 
 TEST_F(ListTest, PushBack) {
@@ -41,6 +54,9 @@ TEST_F(ListTest, PopBack) {
     list.pop_back();
     EXPECT_EQ(list.back(), 2);
     EXPECT_EQ(list.Size(), 2);
+
+    cont::List<int> l;
+    EXPECT_THROW(l.pop_back(), std::out_of_range);
 }
 
 TEST_F(ListTest, Insert) {
@@ -58,6 +74,15 @@ TEST_F(ListTest, Erase) {
     auto itCheck = ++list.begin();
     EXPECT_EQ(*itCheck, 3);
     EXPECT_EQ(list.Size(), 2);
+
+    cont::List<int> l = {1, 2, 3, 4, 5};
+    l.erase(l.cbegin());
+    EXPECT_EQ(l.Size(), 4);
+    EXPECT_EQ(l.front(), 2);
+
+    l.erase(l.cbegin().next(3));
+    EXPECT_EQ(l.back(), 4);
+    EXPECT_EQ(l.Size(), 3);
 }
 
 TEST_F(ListTest, ResizeGrow) {
@@ -100,11 +125,10 @@ TEST_F(ListTest, IteratorTraversal) {
 
 TEST_F(ListTest, ReverseIteratorTraversal) {
     std::vector<int> expected = {3, 2, 1};
-    auto rit = list.rend();
-    --rit;
-    for (int val : expected) {
+    auto rit = list.rbegin();
+        for (int val : expected) {
         EXPECT_EQ(*rit, val);
-        --rit;
+        ++rit;
     }
 }
 
@@ -123,6 +147,92 @@ TEST(ListInitializerTest, InitList) {
     EXPECT_EQ(*it++, 3);
     EXPECT_EQ(*it++, 4);
     EXPECT_EQ(it, l.end());
+}
+
+TEST_F(ListTest, spaceship) {
+    cont::List<int> l1 = {1, 2, 3};
+    cont::List<int> l2 = {1, 2, 4};
+    cont::List<int> l3 = {1, 2, 3};
+
+    EXPECT_EQ((l1 < l2), true);
+    EXPECT_EQ((l1 > l2), false);
+    EXPECT_EQ((l1 <= l3), true);
+    EXPECT_EQ((l1 >= l3), true);
+}
+
+TEST_F(ListTest, assignment_operator) {
+    cont::List<int> l;
+    l = list;
+    EXPECT_EQ(l.front(), 1);
+    EXPECT_EQ(l.back(), 3);
+}
+
+TEST_F(ListTest, move_operator) {
+    cont::List<int> l = {1, 2, 3};
+    cont::List<int> l1;
+    l1 = std::move(l);
+    EXPECT_EQ(l1.front(), 1);
+    EXPECT_EQ(l1.back(), 3);
+}
+
+TEST_F(ListTest, move_constructor) {
+    cont::List<int> l = {1, 2, 3};
+    cont::List<int> l1 = std::move(l);
+    EXPECT_EQ(l1.front(), 1);
+    EXPECT_EQ(l1.back(), 3);
+}
+
+TEST_F(ListTest, iter) {
+    cont::List<int> l = {1, 2, 3};
+    auto it = l.begin().next(2);
+    --it;
+    it--;
+    EXPECT_EQ(*it, 1);
+}
+
+TEST_F(ListTest, insert2) {
+    cont::List<int> l = {1, 2, 3};
+    l.insert(l.cbegin(), 10);
+    EXPECT_EQ(l.front(), 10);
+    EXPECT_EQ(l.back(), 3);
+    EXPECT_EQ(l.Size(), 4);
+}
+
+TEST_F(ListTest, swap) {
+    cont::List<int> l = {1, 2, 3};
+    cont::List<int> l1 = {4, 5, 6, 7};
+    l.swap(l1);
+    EXPECT_EQ(l.front(), 4);
+    EXPECT_EQ(l.back(), 7);
+    EXPECT_EQ(l.Size(), 4);
+
+    EXPECT_EQ(l1.front(), 1);
+    EXPECT_EQ(l1.back(), 3);
+    EXPECT_EQ(l1.Size(), 3);
+}
+
+TEST_F(ListTest, compEq) {
+    cont::List<int> l = {1, 2, 3, 4};
+    EXPECT_FALSE(l == list);
+}
+
+TEST_F(ListTest, resizeBad) {
+    cont::List<int> l;
+    EXPECT_THROW(l.resize(0), std::out_of_range);
+}
+
+TEST_F(ListTest, resize0) {
+    cont::List<int> l = {1, 2};
+    l.resize(2);
+    EXPECT_EQ(l.front(), 1);
+    EXPECT_EQ(l.back(), 2);
+}
+
+TEST_F(ListTest, resizeFrom0) {
+    cont::List<int> l;
+    l.resize(2, 10);
+    EXPECT_EQ(l.front(), 10);
+    EXPECT_EQ(l.back(), 10);
 }
 
 int main(int argc, char **argv) {
