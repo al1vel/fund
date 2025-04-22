@@ -2,6 +2,10 @@
 #define LIST_H
 
 #include <cstddef>
+#include <compare>
+#include <memory>
+#include <stdexcept>
+#include <initializer_list>
 
 namespace cont {
     template<class T>
@@ -461,6 +465,40 @@ namespace cont {
             std::size_t tmpSize = this->size;
             this->size = other.size;
             other.size = tmpSize;
+        }
+
+        bool operator==(const List& other) const {
+            if (this->size != other.size) {
+                return false;
+            }
+            auto it1 = this->begin();
+            auto it2 = other.begin();
+            while (it1 != this->end()) {
+                if (*it1 != *it2) {
+                    return false;
+                }
+                ++it1;
+                ++it2;
+            }
+            return true;
+        }
+
+        bool operator!=(const List& other) const {
+            return !(*this == other);
+        }
+
+        std::strong_ordering operator<=>(const List& other) const {
+            auto it1 = this->begin();
+            auto it2 = other.begin();
+
+            while (it1 != this->end() && it2 != other.end()) {
+                if (auto cmp = *it1 <=> *it2; cmp != 0) {
+                    return cmp;
+                }
+                ++it1;
+                ++it2;
+            }
+            return std::strong_ordering::equal;
         }
     };
 }

@@ -123,4 +123,13 @@ int main() {
     std::cout << std::endl;
 
     std::cout << "d begin: " << *it1 << std::endl << "e begin: " << *it2 << std::endl;
+
+    std::cout << std::endl << "Comp" << std::endl;
+    cont::List<int> l1 = {1,2,10};
+    cont::List<int> l2 = {1,2,0};
+    cont::List<int> l3 = {1,2,10};
+
+    std::cout << (l1 == l2) << " " << (l1 == l3) << " " << (l2 == l3) << std::endl;
+    std::cout << (l1 < l2) << (l1 > l2) << (l1 <= l3) << std::endl;
 }
+
