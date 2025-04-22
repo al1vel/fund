@@ -235,6 +235,18 @@ TEST_F(ListTest, resizeFrom0) {
     EXPECT_EQ(l.back(), 10);
 }
 
+TEST_F(ListTest, assSame) {
+    cont::List<int> l = {1, 2, 3};
+    l = l;
+    EXPECT_EQ(l.front(), 1);
+    EXPECT_EQ(l.back(), 3);
+}
+
+TEST_F(ListTest, nextBad) {
+    cont::List<int> l = {1, 2, 3};
+    EXPECT_THROW(l.cbegin().next(4), std::out_of_range);
+}
+
 int main(int argc, char **argv) {
     ::testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();

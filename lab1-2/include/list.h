@@ -45,7 +45,7 @@ namespace cont {
 
         Node *head = nullptr;
         Node *tail = nullptr;
-        std::size_t size = 0;
+        std::size_t len = 0;
 
         void createHead(noConstT val) {
             Node *head = allocator.allocate(sizeof(Node));
@@ -54,7 +54,7 @@ namespace cont {
             head->prev = nullptr;
             this->head = head;
             this->tail = head;
-            this->size = 1;
+            this->len = 1;
         }
 
         Node *createNode(noConstT val) {
@@ -70,7 +70,7 @@ namespace cont {
             tail->next = node;
             node->prev = tail;
             tail = node;
-            size++;
+            len++;
         }
 
         void deleteList() {
@@ -81,14 +81,14 @@ namespace cont {
             }
             head = nullptr;
             tail = nullptr;
-            size = 0;
+            len = 0;
         }
 
     public:
         List() {
             head = nullptr;
             tail = nullptr;
-            size = 0;
+            len = 0;
         }
 
         List(std::initializer_list<T> init) {
@@ -114,10 +114,10 @@ namespace cont {
             head = other.head;
             tail = other.tail;
             allocator = other.allocator;
-            size = other.size;
+            len = other.len;
             other.head = nullptr;
             other.tail = nullptr;
-            other.size = 0;
+            other.len = 0;
         }
 
         ~List() {
@@ -143,8 +143,8 @@ namespace cont {
                 this->allocator = other.allocator;
                 this->head = other.head;
                 this->tail = other.tail;
-                this->size = other.size;
-                other.size = 0;
+                this->len = other.len;
+                other.len = 0;
                 other.head = nullptr;
                 other.tail = nullptr;
             }
@@ -314,11 +314,11 @@ namespace cont {
         }
 
         [[nodiscard]] bool empty() const {
-            return size == 0;
+            return len == 0;
         }
 
-        [[nodiscard]] std::size_t Size() const {
-            return size;
+        [[nodiscard]] std::size_t size() const {
+            return len;
         }
 
         void clear() {
@@ -332,7 +332,7 @@ namespace cont {
                 newNode->next = h;
                 h->prev = newNode;
                 head = newNode;
-                size++;
+                len++;
             } else {
                 Node* whereToPut = posIter.ptr;
                 Node* newNode = createNode(val);
@@ -341,7 +341,7 @@ namespace cont {
                 newNode->next = whereToPut;
                 newNode->prev = prev;
                 whereToPut->prev = newNode;
-                size++;
+                len++;
             }
         }
 
@@ -351,7 +351,7 @@ namespace cont {
                 allocator.deallocate(posIter.ptr, sizeof(Node));
                 head = h;
                 head->prev = nullptr;
-                size--;
+                len--;
                 return Iterator(head);
             }
             Node* node = posIter.ptr;
@@ -361,13 +361,13 @@ namespace cont {
                 prev->next = next;
                 next->prev = prev;
                 allocator.deallocate(node, sizeof(Node));
-                size--;
+                len--;
                 return Iterator(next);
             }
             prev->next = nullptr;
             tail = prev;
             allocator.deallocate(node, sizeof(Node));
-            size--;
+            len--;
             return Iterator(nullptr);
         }
 
@@ -376,24 +376,24 @@ namespace cont {
             if (head == nullptr) {
                 head = node;
                 tail = node;
-                size = 1;
+                len = 1;
             } else {
                 Node* last = tail;
                 tail->next = node;
                 tail = node;
                 tail->prev = last;
-                size++;
+                len++;
             }
         }
 
         void pop_back() {
-            if (size == 0) {
+            if (len == 0) {
                 throw std::out_of_range("ListIterator::pop_back. Size is 0");
             }
             Node* rem = tail;
             tail = tail->prev;
             allocator.deallocate(rem, sizeof(Node));
-            size--;
+            len--;
             tail->next = nullptr;
         }
 
@@ -402,23 +402,23 @@ namespace cont {
             if (head == nullptr) {
                 head = node;
                 tail = node;
-                size = 1;
+                len = 1;
             } else {
                 node->next = head;
                 head->prev = node;
                 head = node;
-                size++;
+                len++;
             }
         }
 
         void pop_front() {
-            if (size == 0) {
+            if (len == 0) {
                 throw std::out_of_range("ListIterator::pop_front. Size is 0");
             }
             Node* rem = head;
             head = head->next;
             allocator.deallocate(rem, sizeof(Node));
-            size--;
+            len--;
             head->prev = nullptr;
         }
 
@@ -426,24 +426,24 @@ namespace cont {
             if (newSize <= 0) {
                 throw std::out_of_range("ListIterator::resize. New size must be more than 0.");
             }
-            if (size == newSize) {
+            if (len == newSize) {
                 return;
             }
-            if (size == 0) {
+            if (len == 0) {
                 createHead(val);
-                while (size != newSize) {
+                while (len != newSize) {
                     push_back(val);
                 }
                 return;
             }
-            if (size > newSize) {
-                while (size != newSize) {
+            if (len > newSize) {
+                while (len != newSize) {
                     pop_back();
                 }
                 return;
             }
-            if (size < newSize) {
-                while (size != newSize) {
+            if (len < newSize) {
+                while (len != newSize) {
                     push_back(val);
                 }
             }
@@ -462,13 +462,13 @@ namespace cont {
             this->allocator = other.allocator;
             other.allocator = tmpAllocator;
 
-            std::size_t tmpSize = this->size;
-            this->size = other.size;
-            other.size = tmpSize;
+            std::size_t tmpSize = this->len;
+            this->len = other.len;
+            other.len = tmpSize;
         }
 
         bool operator==(const List& other) const {
-            if (this->size != other.size) {
+            if (this->len != other.len) {
                 return false;
             }
             auto it1 = this->begin();
