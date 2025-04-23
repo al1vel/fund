@@ -151,14 +151,14 @@ namespace cont {
             return *this;
         }
 
-        T &front() {
+        virtual T &front() {
             if (head == nullptr) {
                 throw std::out_of_range("List::front. List doesn't exist.");
             }
             return head->data;
         }
 
-        T &back() {
+        virtual T &back() {
             if (tail == nullptr) {
                 throw std::out_of_range("List::back. List doesn't exist.");
             }
