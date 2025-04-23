@@ -23,7 +23,7 @@ namespace cont {
 
         virtual bool operator!=(const MyContainer &other) const = 0;
 
-        [[nodiscard]] virtual std::size_t size() const = 0;
+        [[nodiscard]] virtual std::size_t size() const  = 0;
 
         [[nodiscard]] virtual std::size_t max_size() const = 0;
 
@@ -31,7 +31,7 @@ namespace cont {
     };
 
     template<class T, class Allocator = std::allocator<T> >
-    class List {
+    class List : public MyContainer<T> {
     private:
         using noConstT = std::remove_const_t<T>;
         struct Node {
@@ -317,7 +317,11 @@ namespace cont {
             return len == 0;
         }
 
-        [[nodiscard]] std::size_t size() const {
+        [[nodiscard]] std::size_t size() const override  {
+            return len;
+        }
+
+        [[nodiscard]] std::size_t max_size() const override {
             return len;
         }
 
@@ -467,12 +471,13 @@ namespace cont {
             other.len = tmpSize;
         }
 
-        bool operator==(const List& other) const {
-            if (this->len != other.len) {
+        bool operator==(const MyContainer<T>& other) const override {
+            const auto *otherList = dynamic_cast<const List *>(&other);
+            if (this->len != otherList->len) {
                 return false;
             }
             auto it1 = this->begin();
-            auto it2 = other.begin();
+            auto it2 = otherList->begin();
             while (it1 != this->end()) {
                 if (*it1 != *it2) {
                     return false;
@@ -483,7 +488,7 @@ namespace cont {
             return true;
         }
 
-        bool operator!=(const List& other) const {
+        bool operator!=(const MyContainer<T>& other) const override {
             return !(*this == other);
         }
 

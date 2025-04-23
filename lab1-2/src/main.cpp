@@ -15,7 +15,7 @@ int main() {
     std::cout << 3<< " " << list4.front() << " " << list4.back() << std::endl;
 
     list4.clear();
-    std::cout << 4 << " " << list4.empty() << " " << list4.Size() << std::endl;
+    std::cout << 4 << " " << list4.empty() << " " << list4.size() << std::endl;
 
     std::cout << 5 << " ---- " << std::endl;
 

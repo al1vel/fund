@@ -26,19 +26,19 @@ TEST_F(ListTest, FrontAndBack) {
 TEST_F(ListTest, PushFront) {
     list.push_front(0);
     EXPECT_EQ(list.front(), 0);
-    EXPECT_EQ(list.Size(), 4);
+    EXPECT_EQ(list.size(), 4);
 
     cont::List<int> l;
     l.push_front(1);
     EXPECT_EQ(l.front(), 1);
     EXPECT_EQ(l.back(), 1);
-    EXPECT_EQ(l.Size(), 1);
+    EXPECT_EQ(l.size(), 1);
 }
 
 TEST_F(ListTest, PopFront) {
     list.pop_front();
     EXPECT_EQ(list.front(), 2);
-    EXPECT_EQ(list.Size(), 2);
+    EXPECT_EQ(list.size(), 2);
 
     cont::List<int> l;
     EXPECT_THROW(l.pop_front(), std::out_of_range);
@@ -47,13 +47,13 @@ TEST_F(ListTest, PopFront) {
 TEST_F(ListTest, PushBack) {
     list.push_back(4);
     EXPECT_EQ(list.back(), 4);
-    EXPECT_EQ(list.Size(), 4);
+    EXPECT_EQ(list.size(), 4);
 }
 
 TEST_F(ListTest, PopBack) {
     list.pop_back();
     EXPECT_EQ(list.back(), 2);
-    EXPECT_EQ(list.Size(), 2);
+    EXPECT_EQ(list.size(), 2);
 
     cont::List<int> l;
     EXPECT_THROW(l.pop_back(), std::out_of_range);
@@ -65,7 +65,7 @@ TEST_F(ListTest, Insert) {
     auto itCheck = list.begin();
     ++itCheck;
     EXPECT_EQ(*itCheck, 42);
-    EXPECT_EQ(list.Size(), 4);
+    EXPECT_EQ(list.size(), 4);
 }
 
 TEST_F(ListTest, Erase) {
@@ -73,27 +73,27 @@ TEST_F(ListTest, Erase) {
     list.erase(it);
     auto itCheck = ++list.begin();
     EXPECT_EQ(*itCheck, 3);
-    EXPECT_EQ(list.Size(), 2);
+    EXPECT_EQ(list.size(), 2);
 
     cont::List<int> l = {1, 2, 3, 4, 5};
     l.erase(l.cbegin());
-    EXPECT_EQ(l.Size(), 4);
+    EXPECT_EQ(l.size(), 4);
     EXPECT_EQ(l.front(), 2);
 
     l.erase(l.cbegin().next(3));
     EXPECT_EQ(l.back(), 4);
-    EXPECT_EQ(l.Size(), 3);
+    EXPECT_EQ(l.size(), 3);
 }
 
 TEST_F(ListTest, ResizeGrow) {
     list.resize(5, 9);
-    EXPECT_EQ(list.Size(), 5);
+    EXPECT_EQ(list.size(), 5);
     EXPECT_EQ(list.back(), 9);
 }
 
 TEST_F(ListTest, ResizeShrink) {
     list.resize(2);
-    EXPECT_EQ(list.Size(), 2);
+    EXPECT_EQ(list.size(), 2);
     EXPECT_EQ(list.back(), 2);
 }
 
@@ -135,12 +135,12 @@ TEST_F(ListTest, ReverseIteratorTraversal) {
 TEST_F(ListTest, ClearList) {
     list.clear();
     EXPECT_TRUE(list.empty());
-    EXPECT_EQ(list.Size(), 0);
+    EXPECT_EQ(list.size(), 0);
 }
 
 TEST(ListInitializerTest, InitList) {
     cont::List<int> l = {1, 2, 3, 4};
-    EXPECT_EQ(l.Size(), 4);
+    EXPECT_EQ(l.size(), 4);
     auto it = l.begin();
     EXPECT_EQ(*it++, 1);
     EXPECT_EQ(*it++, 2);
@@ -195,7 +195,7 @@ TEST_F(ListTest, insert2) {
     l.insert(l.cbegin(), 10);
     EXPECT_EQ(l.front(), 10);
     EXPECT_EQ(l.back(), 3);
-    EXPECT_EQ(l.Size(), 4);
+    EXPECT_EQ(l.size(), 4);
 }
 
 TEST_F(ListTest, swap) {
@@ -204,11 +204,11 @@ TEST_F(ListTest, swap) {
     l.swap(l1);
     EXPECT_EQ(l.front(), 4);
     EXPECT_EQ(l.back(), 7);
-    EXPECT_EQ(l.Size(), 4);
+    EXPECT_EQ(l.size(), 4);
 
     EXPECT_EQ(l1.front(), 1);
     EXPECT_EQ(l1.back(), 3);
-    EXPECT_EQ(l1.Size(), 3);
+    EXPECT_EQ(l1.size(), 3);
 }
 
 TEST_F(ListTest, compEq) {
