@@ -281,39 +281,39 @@ namespace cont {
         using ConstIterator = ListIterator<const Node>;
         using ConstReverseIterator = ReverseListIterator<const Node>;
 
-        Iterator begin() const {
+        virtual Iterator begin() const {
             return Iterator(head);
         }
 
-        Iterator end() const {
+        virtual Iterator end() const {
             return Iterator(nullptr);
         }
 
-        ConstIterator cbegin() const {
+        virtual ConstIterator cbegin() const {
             return ConstIterator(head);
         }
 
-        ConstIterator cend() const {
+        virtual ConstIterator cend() const {
             return ConstIterator(nullptr);
         }
 
-        ReverseIterator rbegin() const {
+        virtual ReverseIterator rbegin() const {
             return ReverseIterator(tail);
         }
 
-        ReverseIterator rend() const {
+        virtual ReverseIterator rend() const {
             return ReverseIterator(nullptr);
         }
 
-        ConstReverseIterator crbegin() const {
+        virtual ConstReverseIterator crbegin() const {
             return ConstReverseIterator(tail);
         }
 
-        ConstReverseIterator crend() const {
+        virtual ConstReverseIterator crend() const {
             return ConstReverseIterator(nullptr);
         }
 
-        [[nodiscard]] bool empty() const {
+        [[nodiscard]] bool empty() const override {
             return len == 0;
         }
 
@@ -325,11 +325,11 @@ namespace cont {
             return len;
         }
 
-        void clear() {
+        virtual void clear() {
             deleteList();
         }
 
-        void insert(ConstIterator posIter, noConstT val) {
+        virtual void insert(ConstIterator posIter, noConstT val) {
             if (posIter.ptr == head) {
                 Node* h = head;
                 Node* newNode = createNode(val);
@@ -349,7 +349,7 @@ namespace cont {
             }
         }
 
-        Iterator erase(ConstIterator posIter) {
+        virtual Iterator erase(ConstIterator posIter) {
             if (posIter.ptr == head) {
                 Node* h = head->next;
                 allocator.deallocate(posIter.ptr, sizeof(Node));
@@ -375,7 +375,7 @@ namespace cont {
             return Iterator(nullptr);
         }
 
-        void push_back(noConstT val) {
+        virtual void push_back(noConstT val) {
             Node* node = createNode(val);
             if (head == nullptr) {
                 head = node;
@@ -390,7 +390,7 @@ namespace cont {
             }
         }
 
-        void pop_back() {
+        virtual void pop_back() {
             if (len == 0) {
                 throw std::out_of_range("ListIterator::pop_back. Size is 0");
             }
@@ -401,7 +401,7 @@ namespace cont {
             tail->next = nullptr;
         }
 
-        void push_front(noConstT val) {
+        virtual void push_front(noConstT val) {
             Node* node = createNode(val);
             if (head == nullptr) {
                 head = node;
@@ -415,7 +415,7 @@ namespace cont {
             }
         }
 
-        void pop_front() {
+        virtual void pop_front() {
             if (len == 0) {
                 throw std::out_of_range("ListIterator::pop_front. Size is 0");
             }
@@ -426,7 +426,7 @@ namespace cont {
             head->prev = nullptr;
         }
 
-        void resize(std::size_t newSize, noConstT val = 0) {
+        virtual void resize(std::size_t newSize, noConstT val) {
             if (newSize <= 0) {
                 throw std::out_of_range("ListIterator::resize. New size must be more than 0.");
             }
@@ -453,7 +453,7 @@ namespace cont {
             }
         }
 
-        void swap(List& other) noexcept {
+        virtual void swap(List& other) noexcept {
             Node*tmpHead = this->head;
             this->head = other.head;
             other.head = tmpHead;

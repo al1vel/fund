@@ -56,11 +56,12 @@ namespace contDQ {
 
         T &operator[](std::size_t pos) {
             auto it = list.cbegin();
-            for (; it != list.cend(); ++it) {
+            while(pos > 0) {
                 if (it.ptr == nullptr) {
                     return nullptr;
                 }
                 ++it;
+                pos--;
             }
             return *it;
         }
@@ -73,23 +74,102 @@ namespace contDQ {
             return list.back();
         }
 
-        template<class IterType>
-        class DequeIterator {
-        private:
-            using noConstIterType = std::remove_const_t<IterType>;
-            noConstIterType *dq_ptr = nullptr;
+        using Iterator = cont::List<T, Allocator>::Iterator;
+        using ConstIterator = cont::List<T, Allocator>::ConstIterator;
+        using ReverseIterator = cont::List<T, Allocator>::ReverseIterator;
+        using ConstReverseIterator = cont::List<T, Allocator>::ConstReverseIterator;
 
-            explicit DequeIterator(noConstIterType *dq_ptr) : dq_ptr(dq_ptr) {
-            }
+        Iterator begin() const override {
+            return list.begin();
+        }
 
-        public:
-            DequeIterator(const DequeIterator& other) = default;
-            DequeIterator(const DequeIterator&& other) = default;
+        Iterator end() const override {
+            return list.end();
+        }
 
-            DequeIterator& operator++() {
+        ConstIterator cbegin() const override {
+            return list.cbegin();
+        }
 
-            }
-        };
+        ConstIterator cend() const override {
+            return list.cend();
+        }
+
+        ReverseIterator rbegin() const override {
+            return list.rbegin();
+        }
+
+        ReverseIterator rend() const override {
+            return list.rend();
+        }
+
+        ConstReverseIterator crbegin() const override {
+            return list.crbegin();
+        }
+
+        ConstReverseIterator crend() const override {
+            return list.crend();
+        }
+
+        [[nodiscard]] bool empty() const override {
+            return list.empty();
+        }
+
+        [[nodiscard]] std::size_t size() const override {
+            return list.size();
+        }
+
+        [[nodiscard]] std::size_t max_size() const override {
+            return list.max_size();
+        }
+
+        void clear() override {
+            list.clear();
+        }
+
+        void insert(ConstIterator posIter, T val) override {
+            list.insert(posIter, val);
+        }
+
+        Iterator erase(ConstIterator posIter) override {
+            return list.erase(posIter);
+        }
+
+        void push_back(T val) override {
+            list.push_back(val);
+        }
+
+        void pop_back() override {
+            list.pop_back();
+        }
+
+        void push_front(T val) override {
+            list.push_front(val);
+        }
+
+        void pop_front() override {
+            list.pop_front();
+        }
+
+        void resize(std::size_t newSize, T val) override {
+            list.resize(newSize, val);
+        }
+
+        void swap(Deque &other) noexcept {
+            list.swap(other.list);
+        }
+
+        bool operator==(const Deque &other) const {
+            return list == other.list;
+        }
+
+        bool operator!=(const Deque &other) const {
+            return !(*this == other);
+        }
+
+        std::strong_ordering operator<=>(const Deque &other) const {
+            return list <=> other.list;
+        }
     };
 };
 
