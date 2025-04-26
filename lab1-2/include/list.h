@@ -337,6 +337,13 @@ namespace cont {
                 h->prev = newNode;
                 head = newNode;
                 len++;
+            }
+            else if (posIter.ptr == nullptr) {
+                Node* newNode = createNode(val);
+                tail->next = newNode;
+                newNode->prev = tail;
+                tail = newNode;
+                len++;
             } else {
                 Node* whereToPut = posIter.ptr;
                 Node* newNode = createNode(val);

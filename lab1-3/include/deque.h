@@ -2,6 +2,7 @@
 #define DEQUE_H
 
 #include "../../lab1-2/include/list.h"
+#include <iostream>
 
 namespace contDQ {
     template<class T, class Allocator = std::allocator<T> >
@@ -18,13 +19,14 @@ namespace contDQ {
             list = cont::List<T, Allocator>(init);
         }
 
-        Deque(const Deque &other) {
+        Deque(const Deque &other) : cont::List<T, Allocator>(other.list) {
             list = other.list;
         }
 
         Deque(Deque &&other) noexcept {
+            //std::cout << "Called move constructor" << std::endl;
             list = other.list;
-            other.list = 0;
+            //other.list = nullptr;
         }
 
         ~Deque() override {
@@ -32,6 +34,7 @@ namespace contDQ {
         }
 
         Deque &operator=(const Deque &other) {
+            //std::cout << "Called copy operator" << std::endl;
             if (this != &other) {
                 list = other.list;
             }
@@ -39,9 +42,10 @@ namespace contDQ {
         }
 
         Deque &operator=(Deque &&other) noexcept {
+            //std::cout << "Called move operator" << std::endl;
             if (this != &other) {
                 list = other.list;
-                other.list = 0;
+                //other.list = 0;
             }
             return *this;
         }
@@ -50,16 +54,16 @@ namespace contDQ {
             if (pos >= list.size()) {
                 throw std::out_of_range("Deque::at. Pos is unreal.");
             }
-            auto it = list.cbegin().next(pos - 1);
+            auto it = list.cbegin().next(pos);
             return *it;
         }
 
         T &operator[](std::size_t pos) {
+            if (pos >= list.size()) {
+                throw std::out_of_range("Deque::[]. Pos is unreal.");
+            }
             auto it = list.cbegin();
             while(pos > 0) {
-                if (it.ptr == nullptr) {
-                    return nullptr;
-                }
                 ++it;
                 pos--;
             }
