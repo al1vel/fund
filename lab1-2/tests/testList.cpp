@@ -92,7 +92,7 @@ TEST_F(ListTest, ResizeGrow) {
 }
 
 TEST_F(ListTest, ResizeShrink) {
-    list.resize(2);
+    list.resize(2, 0);
     EXPECT_EQ(list.size(), 2);
     EXPECT_EQ(list.back(), 2);
 }
@@ -218,12 +218,12 @@ TEST_F(ListTest, compEq) {
 
 TEST_F(ListTest, resizeBad) {
     cont::List<int> l;
-    EXPECT_THROW(l.resize(0), std::out_of_range);
+    EXPECT_THROW(l.resize(0, 0), std::out_of_range);
 }
 
 TEST_F(ListTest, resize0) {
     cont::List<int> l = {1, 2};
-    l.resize(2);
+    l.resize(2, 0);
     EXPECT_EQ(l.front(), 1);
     EXPECT_EQ(l.back(), 2);
 }

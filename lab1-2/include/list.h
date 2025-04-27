@@ -120,7 +120,7 @@ namespace cont {
             other.len = 0;
         }
 
-        ~List() {
+        ~List() override {
             deleteList();
         }
 
@@ -128,11 +128,17 @@ namespace cont {
             if (this != &other) {
                 this->deleteList();
                 this->allocator = other.allocator;
-                createHead(other.head->data);
-                Node *ptr = other.head->next;
-                while (ptr != nullptr) {
-                    pushBack(ptr->data);
-                    ptr = ptr->next;
+                if (other.head != nullptr) {
+                    createHead(other.head->data);
+                    Node *ptr = other.head->next;
+                    while (ptr != nullptr) {
+                        pushBack(ptr->data);
+                        ptr = ptr->next;
+                    }
+                } else {
+                    head = nullptr;
+                    tail = nullptr;
+                    len = 0;
                 }
             }
             return *this;
@@ -402,10 +408,16 @@ namespace cont {
                 throw std::out_of_range("ListIterator::pop_back. Size is 0");
             }
             Node* rem = tail;
-            tail = tail->prev;
+            if (len == 1) {
+                head = nullptr;
+                tail = nullptr;
+                len = 0;
+            } else {
+                tail = tail->prev;
+                len--;
+                tail->next = nullptr;
+            }
             allocator.deallocate(rem, sizeof(Node));
-            len--;
-            tail->next = nullptr;
         }
 
         virtual void push_front(noConstT val) {
@@ -427,10 +439,16 @@ namespace cont {
                 throw std::out_of_range("ListIterator::pop_front. Size is 0");
             }
             Node* rem = head;
-            head = head->next;
+            if (len == 1) {
+                head = nullptr;
+                tail = nullptr;
+                len = 0;
+            } else {
+                head = head->next;
+                len--;
+                head->prev = nullptr;
+            }
             allocator.deallocate(rem, sizeof(Node));
-            len--;
-            head->prev = nullptr;
         }
 
         virtual void resize(std::size_t newSize, noConstT val) {

@@ -99,7 +99,7 @@ int main() {
     }
     std::cout << std::endl;
 
-    c.resize(6);
+    c.resize(6, 0);
     for (auto it = c.cbegin(); it != c.cend(); it++) {
         std::cout << *it << " ";
     }
