@@ -11,4 +11,13 @@ int main() {
         cout << x << " ";
     }
     cout << endl;
+
+    vector<int> a;
+    auto it = a.begin();
+    ++it;
+    ++it;
+    a.insert(it, 10);
+
+    cout << a.capacity() << endl;
+    cout << a.size() << endl;
 }

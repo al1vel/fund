@@ -2,6 +2,7 @@
 #define VECTOR_H
 
 #include <iostream>
+#include <compare>
 
 namespace cont {
     template<class T>
@@ -42,7 +43,7 @@ namespace cont {
             data_ = alloc.allocate(n * sizeof(T));
             cap = n;
             len = n;
-            for (int i = 0; i < n; i++) {
+            for (siz i = 0; i < n; i++) {
                 data_[i] = val;
             }
         }
@@ -153,7 +154,7 @@ namespace cont {
             }
             T* new_data = alloc.allocate(n * sizeof(T));
             std::copy(data_, data_ + len, new_data);
-            alloc.deallocate(data_, cap);
+            alloc.deallocate(data_, cap * sizeof(T));
             data_ = new_data;
             cap = n;
         }
@@ -164,16 +165,16 @@ namespace cont {
             // }
             T* new_data = alloc.allocate(len * sizeof(T));
             std::copy(data_, data_ + len, new_data);
-            alloc.deallocate(data_, cap);
+            alloc.deallocate(data_, cap * sizeof(T));
             data_ = new_data;
             cap = len;
         }
 
         void clear() {
-            if (data_ == nullptr) {
-                return;
+            if (len == 0) {
+                throw(std::out_of_range("The vector is empty."));
             }
-            for (int i = 0; i < len; i++) {
+            for (siz i = 0; i < len; i++) {
                 data_[i].~T();
             }
             len = 0;
@@ -203,15 +204,16 @@ namespace cont {
             if (len == cap) {
                 if (cap == 0) {
                     reserve(index + 1);
+                    len = cap;
                 } else {
                     reserve(cap * 2);
+                    len++;
                 }
             }
             for (siz i = len; i > index; --i) {
                 data_[i] = data_[i - 1];
             }
             data_[index] = val;
-            len++;
         }
 
         void erase(siz index) {
@@ -275,8 +277,16 @@ namespace cont {
             return !(*this == other);
         }
 
-        std::strong_ordering operator<=>(const Vector &other) const {
+        std::strong_ordering operator<=>(const Vector& other) const {
+            size_t min_size = (len < other.len) ? len : other.len;
 
+            for (size_t i = 0; i < min_size; ++i) {
+                if (auto cmp = data_[i] <=> other.data_[i]; cmp != 0) {
+                    return cmp;
+                }
+            }
+
+            return len <=> other.len;
         }
     };
 }
