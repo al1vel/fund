@@ -352,6 +352,79 @@ TEST_F(ListTest, pop2) {
     EXPECT_THROW(l.front(), std::out_of_range);
 }
 
+TEST(Constructors, CopyEmptyList) {
+    cont::List<int> l;
+    cont::List<int> l1 = l;
+    EXPECT_EQ(l1.size(), 0);
+    EXPECT_TRUE(l1.empty());
+}
+
+TEST(Constructors, MoveEmptyList) {
+    cont::List<int> l;
+    cont::List<int> l1 = std::move(l);
+    EXPECT_EQ(l1.size(), 0);
+    EXPECT_TRUE(l1.empty());
+}
+
+TEST(Erase, SingleElement) {
+    cont::List<int> l = {1};
+    l.erase(l.cbegin());
+    EXPECT_EQ(l.size(), 0);
+    EXPECT_TRUE(l.empty());
+}
+
+TEST(Erase, FromEmptyList) {
+    cont::List<int> l;
+    EXPECT_THROW(l.erase(l.cbegin()), std::out_of_range);
+}
+
+TEST(Resize, ToZeroShouldThrow) {
+    cont::List<int> l = {1, 2, 3};
+    EXPECT_THROW(l.resize(0, 0), std::out_of_range);
+}
+
+TEST(Resize, EmptyToNonEmpty) {
+    cont::List<int> l;
+    l.resize(3, 42);
+    EXPECT_EQ(l.size(), 3);
+    EXPECT_EQ(l.front(), 42);
+    EXPECT_EQ(l.back(), 42);
+}
+
+TEST(Comparison, DifferentLengths) {
+    cont::List<int> l1 = {1, 2, 3};
+    cont::List<int> l2 = {1, 2};
+    EXPECT_FALSE(l1 == l2);
+    EXPECT_TRUE(l1 != l2);
+}
+
+TEST(Spaceship, DifferentLengths) {
+    cont::List<int> l1 = {1, 2};
+    cont::List<int> l2 = {1, 2, 3};
+    EXPECT_EQ((l1 <=> l2), std::strong_ordering::less);
+    EXPECT_EQ((l2 <=> l1), std::strong_ordering::greater);
+}
+
+TEST(Swap, WithEmpty) {
+    cont::List<int> l1 = {1, 2, 3};
+    cont::List<int> l2;
+    l1.swap(l2);
+    EXPECT_TRUE(l1.empty());
+    EXPECT_EQ(l2.size(), 3);
+}
+
+TEST(Swap, WithSelf) {
+    cont::List<int> l = {1, 2, 3};
+    l.swap(l);  // должно работать без проблем
+    EXPECT_EQ(l.size(), 3);
+}
+
+// TEST(Assignment, MoveToSelf) {
+//     cont::List<int> l = {1, 2, 3};
+//     l = std::move(l);  // должно работать без проблем
+//     EXPECT_EQ(l.size(), 3);
+// }
+
 int main(int argc, char **argv) {
     ::testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();

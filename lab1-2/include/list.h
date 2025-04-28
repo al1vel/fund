@@ -102,11 +102,17 @@ namespace cont {
 
         List(const List &other) {
             this->allocator = other.allocator;
-            createHead(other.head->data);
-            Node *p = other.head->next;
-            while (p != nullptr) {
-                pushBack(p->data);
-                p = p->next;
+            if (other.head == nullptr) {
+                this->head = nullptr;
+                this->tail = nullptr;
+                this->len = 0;
+            } else {
+                createHead(other.head->data);
+                Node *p = other.head->next;
+                while (p != nullptr) {
+                    pushBack(p->data);
+                    p = p->next;
+                }
             }
         }
 
@@ -363,12 +369,22 @@ namespace cont {
         }
 
         virtual Iterator erase(ConstIterator posIter) {
+            if (posIter.ptr == nullptr) {
+                throw std::out_of_range("ListIterator::erase. Offset is out of the collection.");
+            }
             if (posIter.ptr == head) {
-                Node* h = head->next;
-                allocator.deallocate(posIter.ptr, sizeof(Node));
-                head = h;
-                head->prev = nullptr;
-                len--;
+                if (posIter.ptr == tail) {
+                    allocator.deallocate(posIter.ptr, sizeof(Node));
+                    head = nullptr;
+                    tail = nullptr;
+                    len = 0;
+                } else {
+                    Node* h = head->next;
+                    allocator.deallocate(posIter.ptr, sizeof(Node));
+                    head = h;
+                    head->prev = nullptr;
+                    len--;
+                }
                 return Iterator(head);
             }
             Node* node = posIter.ptr;
@@ -528,7 +544,7 @@ namespace cont {
                 ++it1;
                 ++it2;
             }
-            return std::strong_ordering::equal;
+            return this->len <=> other.len;
         }
     };
 }
