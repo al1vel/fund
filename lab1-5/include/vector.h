@@ -32,7 +32,7 @@ namespace cont {
         using siz = std::size_t;
         T *data_ = nullptr;
         siz len = 0;
-        siz capacity = 0;
+        siz cap = 0;
         Allocator alloc = Allocator();
 
     public:
@@ -40,7 +40,7 @@ namespace cont {
 
         explicit Vector(siz n, T val = 0) {
             data_ = alloc.allocate(n * sizeof(T));
-            capacity = n;
+            cap = n;
             len = n;
             for (int i = 0; i < n; i++) {
                 data_[i] = val;
@@ -51,44 +51,44 @@ namespace cont {
             data_ = alloc.allocate(init.size() * sizeof(T));
             std::copy(init.begin(), init.end(), data_);
             len = init.size();
-            capacity = init.size();
+            cap = init.size();
         }
 
         Vector(const Vector &other) {
             alloc = other.alloc;
-            data_ = alloc.allocate(other.capacity * sizeof(T));
-            std::copy(other.data_, other.data_ + other.capacity, data_);
+            data_ = alloc.allocate(other.cap * sizeof(T));
+            std::copy(other.data_, other.data_ + other.cap, data_);
             len = other.len;
-            capacity = other.capacity;
+            cap = other.cap;
         }
 
         Vector(Vector &&other) noexcept {
             alloc = other.alloc;
             data_ = other.data_;
             len = other.len;
-            capacity = other.capacity;
+            cap = other.cap;
             other.data_ = nullptr;
             other.len = 0;
-            other.capacity = 0;
+            other.cap = 0;
             other.data_ = nullptr;
         }
 
         ~Vector() {
             if (data_ != nullptr) {
-                alloc.deallocate(data_, capacity * sizeof(T));
+                alloc.deallocate(data_, cap * sizeof(T));
             }
         }
 
         Vector &operator=(const Vector &other) {
             if (this != &other) {
                 if (data_ != nullptr) {
-                    alloc.deallocate(data_, capacity * sizeof(T));
+                    alloc.deallocate(data_, cap * sizeof(T));
                 }
                 alloc = other.alloc;
                 len = other.len;
-                capacity = other.capacity;
-                data_ = alloc.allocate(other.capacity * sizeof(T));
-                std::copy(other.data_, other.data_ + other.capacity, data_);
+                cap = other.cap;
+                data_ = alloc.allocate(other.cap * sizeof(T));
+                std::copy(other.data_, other.data_ + other.cap, data_);
             }
             return *this;
         }
@@ -98,10 +98,10 @@ namespace cont {
                 data_ = other.data_;
                 alloc = other.alloc;
                 len = other.len;
-                capacity = other.capacity;
+                cap = other.cap;
                 other.data_ = nullptr;
                 other.len = 0;
-                other.capacity = 0;
+                other.cap = 0;
             }
             return *this;
         }
@@ -135,7 +135,149 @@ namespace cont {
             return data_;
         }
 
+        [[nodiscard]] bool empty() const {
+            return len == 0;
+        }
 
+        [[nodiscard]] siz size() const {
+            return len;
+        }
+
+        [[nodiscard]] siz capacity() const {
+            return cap;
+        }
+
+        void reserve(siz n) {
+            if (n <= cap) {
+                return;
+            }
+            T* new_data = alloc.allocate(n * sizeof(T));
+            std::copy(data_, data_ + len, new_data);
+            alloc.deallocate(data_, cap);
+            data_ = new_data;
+            cap = n;
+        }
+
+        void shrink_to_fit() {
+            // if (len == 0) {
+            //     return;
+            // }
+            T* new_data = alloc.allocate(len * sizeof(T));
+            std::copy(data_, data_ + len, new_data);
+            alloc.deallocate(data_, cap);
+            data_ = new_data;
+            cap = len;
+        }
+
+        void clear() {
+            if (data_ == nullptr) {
+                return;
+            }
+            for (int i = 0; i < len; i++) {
+                data_[i].~T();
+            }
+            len = 0;
+        }
+
+        void push_back(T val) {
+            if (len == cap) {
+                if (cap == 0) {
+                    reserve(1);
+                } else {
+                    reserve(cap * 2);
+                }
+            }
+            data_[len] = val;
+            len++;
+        }
+
+        void pop_back() {
+            if (len == 0) {
+                throw std::out_of_range("Popped empty vector.");
+            }
+            data_[len - 1].~T();
+            len--;
+        }
+
+        void insert(siz index, T val) {
+            if (len == cap) {
+                if (cap == 0) {
+                    reserve(index + 1);
+                } else {
+                    reserve(cap * 2);
+                }
+            }
+            for (siz i = len; i > index; --i) {
+                data_[i] = data_[i - 1];
+            }
+            data_[index] = val;
+            len++;
+        }
+
+        void erase(siz index) {
+            if (index >= len) {
+                throw std::out_of_range("Erase index out of range.");
+            }
+            data_[index].~T();
+            for (siz i = index; i < len - 1; ++i) {
+                data_[i] = data_[i + 1];
+            }
+            len--;
+        }
+
+        void resize(siz new_size) {
+            if (new_size > cap) {
+                reserve(new_size);
+            }
+            if (new_size > len) {
+                for (size_t i = len; i < new_size; ++i) {
+                    data_[i] = 0;
+                }
+            } else if (new_size < len) {
+                for (size_t i = new_size; i < len; ++i) {
+                    data_[i].~T();
+                }
+            }
+            len = new_size;
+        }
+
+        void swap(Vector &other) noexcept {
+            Allocator tmpAlloc = alloc;
+            alloc = other.alloc;
+            other.alloc = tmpAlloc;
+
+            T* tmpData = data_;
+            data_ = other.data_;
+            other.data_ = tmpData;
+
+            siz tmpLen = len;
+            len = other.len;
+            other.len = tmpLen;
+
+            siz tmpCap = cap;
+            cap = other.cap;
+            other.cap = tmpCap;
+        }
+
+        bool operator==(const Vector &other) const {
+            if (len != other.len) {
+                return false;
+            }
+            for (siz i = 0; i < len; ++i) {
+                if (data_[i] != other.data_[i]) {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        bool operator!=(const Vector &other) const {
+            return !(*this == other);
+        }
+
+        std::strong_ordering operator<=>(const Vector &other) const {
+
+        }
     };
 }
 
