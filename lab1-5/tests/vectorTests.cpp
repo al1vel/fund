@@ -1,14 +1,14 @@
 #include "vector.h"
 #include <gtest/gtest.h>
 
-TEST(VectorTest, DefaultConstructor) {
+TEST(Constructors, DefaultConstructor) {
     cont::Vector<int> v;
     EXPECT_TRUE(v.empty());
     EXPECT_EQ(v.size(), 0);
     EXPECT_EQ(v.capacity(), 0);
 }
 
-TEST(VectorTest, FillConstructor) {
+TEST(Constructors, FillConstructor) {
     cont::Vector<int> v(5, 42);
     EXPECT_EQ(v.size(), 5);
     EXPECT_GE(v.capacity(), 5);
@@ -17,7 +17,7 @@ TEST(VectorTest, FillConstructor) {
     }
 }
 
-TEST(VectorTest, InitializerListConstructor) {
+TEST(Constructors, InitializerListConstructor) {
     cont::Vector<int> v = {1, 2, 3, 4};
     EXPECT_EQ(v.size(), 4);
     EXPECT_EQ(v[0], 1);
@@ -26,13 +26,13 @@ TEST(VectorTest, InitializerListConstructor) {
     EXPECT_EQ(v[3], 4);
 }
 
-TEST(VectorTest, CopyConstructor) {
+TEST(Constructors, CopyConstructor) {
     cont::Vector<int> v1 = {5, 6, 7};
     cont::Vector<int> v2 = v1;
     EXPECT_EQ(v1, v2);
 }
 
-TEST(VectorTest, MoveConstructor) {
+TEST(Constructors, MoveConstructor) {
     cont::Vector<int> v1 = {8, 9};
     cont::Vector<int> v2 = std::move(v1);
     EXPECT_EQ(v2.size(), 2);
@@ -40,21 +40,21 @@ TEST(VectorTest, MoveConstructor) {
     EXPECT_EQ(v2[1], 9);
 }
 
-TEST(VectorTest, CopyAssignment) {
+TEST(Assignment, CopyAssignment) {
     cont::Vector<int> v1 = {10, 11, 12};
     cont::Vector<int> v2;
     v2 = v1;
     EXPECT_EQ(v1, v2);
 }
 
-TEST(VectorTest, CopyAssignment2) {
+TEST(Assignment, CopyAssignment2) {
     cont::Vector<int> v1 = {10, 11, 12};
     cont::Vector<int> v2 = {1, 2, 3, 4};
     v2 = v1;
     EXPECT_EQ(v1, v2);
 }
 
-TEST(VectorTest, MoveAssignment) {
+TEST(Assignment, MoveAssignment) {
     cont::Vector<int> v1 = {13, 14};
     cont::Vector<int> v2;
     v2 = std::move(v1);
@@ -117,7 +117,13 @@ TEST(VectorTest, Clear) {
 TEST(VectorTest, ReserveAndCapacity) {
     cont::Vector<int> v;
     v.reserve(100);
-    EXPECT_GE(v.capacity(), 100);
+    EXPECT_EQ(v.capacity(), 100);
+}
+
+TEST(VectorTest, ReserveLess) {
+    cont::Vector<int> v = {1, 2, 3, 4};
+    v.reserve(2);
+    EXPECT_EQ(v.capacity(), 4);
 }
 
 TEST(VectorTest, ShrinkToFit) {
@@ -154,33 +160,70 @@ TEST(VectorTest, FrontAndBack) {
     EXPECT_EQ(v.back(), 7);
 }
 
-TEST(VectorTest, ComparisonOperatorsEqual) {
+TEST(VectorTest, FrontAndBackExc) {
+    cont::Vector<int> v;
+    EXPECT_THROW(v.front(), std::out_of_range);
+    EXPECT_THROW(v.back(), std::out_of_range);
+}
+
+TEST(VectorTest, at) {
+    cont::Vector<int> v = {1, 2, 3, 4};
+    EXPECT_EQ(v.at(0), 1);
+    EXPECT_EQ(v.at(1), 2);
+    EXPECT_THROW(v.at(4), std::out_of_range);
+}
+
+TEST(VectorTest, Swap) {
+    cont::Vector<int> v1 = {0, 1, 2, 3};
+    cont::Vector<int> v2 = {5, 6, 7, 8, 9, 10};
+
+    v1.swap(v2);
+    EXPECT_EQ(v1.size(), 6);
+    EXPECT_EQ(v2.size(), 4);
+
+    for (std::size_t i = 0; i < v2.size(); ++i) {
+        EXPECT_EQ(v2[i], i);
+    }
+
+    for (std::size_t i = 0; i < v1.size(); ++i) {
+        EXPECT_EQ(v1[i], i + 5);
+    }
+}
+
+TEST(Compare, ComparisonOperatorsEqual) {
     cont::Vector<int> v1 = {1, 2, 3};
     cont::Vector<int> v2 = {1, 2, 3};
     EXPECT_TRUE(v1 == v2);
     EXPECT_FALSE(v1 != v2);
 }
 
-TEST(VectorTest, ComparisonOperatorsNotEqual) {
+TEST(Compare, ComparisonDiffLen) {
+    cont::Vector<int> v1 = {1, 2};
+    cont::Vector<int> v2 = {1, 2, 3};
+    EXPECT_TRUE(v1 != v2);
+    EXPECT_FALSE(v1 == v2);
+}
+
+TEST(Compare, ComparisonOperatorsNotEqual) {
     cont::Vector<int> v1 = {1, 2, 3};
     cont::Vector<int> v2 = {1, 2, 4};
     EXPECT_TRUE(v1 != v2);
     EXPECT_FALSE(v1 == v2);
 }
 
-TEST(VectorTest, SpaceshipOperatorLess) {
+TEST(Compare, SpaceshipOperatorLess) {
     cont::Vector<int> v1 = {1, 2, 3};
     cont::Vector<int> v2 = {1, 2, 4};
     EXPECT_TRUE((v1 < v2));
 }
 
-TEST(VectorTest, SpaceshipOperatorGreater) {
+TEST(Compare, SpaceshipOperatorGreater) {
     cont::Vector<int> v1 = {2, 2, 3};
     cont::Vector<int> v2 = {1, 2, 4};
     EXPECT_TRUE((v1 > v2));
 }
 
-TEST(VectorTest, SpaceshipOperatorEqualBySize) {
+TEST(Compare, SpaceshipOperatorEqualBySize) {
     cont::Vector<int> v1 = {1, 2};
     cont::Vector<int> v2 = {1, 2, 3};
     EXPECT_TRUE((v1 < v2));
