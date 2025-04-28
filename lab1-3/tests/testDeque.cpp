@@ -51,6 +51,99 @@ TEST(Constructors, MoveConstructor) {
     }
 }
 
+TEST(Constructors, CopyEmptyDeque) {
+    contDQ::Deque<int> dq;
+    contDQ::Deque<int> dq2 = dq;
+    EXPECT_EQ(dq2.size(), 0);
+}
+
+TEST(Constructors, MoveEmptyDeque) {
+    contDQ::Deque<int> dq;
+    contDQ::Deque<int> dq2 = std::move(dq);
+    EXPECT_EQ(dq2.size(), 0);
+}
+
+TEST(operatorEq, SelfAssignment) {
+    contDQ::Deque<int> dq = {1, 2, 3};
+    dq = dq;
+    EXPECT_EQ(dq.size(), 3);
+}
+
+TEST_F(DqTest, atEmpty) {
+    contDQ::Deque<int> dq;
+    EXPECT_THROW(dq.at(0), std::out_of_range);
+}
+
+TEST_F(DqTest, operatorAtEmpty) {
+    contDQ::Deque<int> dq;
+    EXPECT_THROW(dq[0], std::out_of_range);
+}
+
+TEST_F(DqTest, insertEmpty) {
+    contDQ::Deque<int> dq;
+    dq.insert(dq.cbegin(), 1);
+    EXPECT_EQ(dq.size(), 1);
+    EXPECT_EQ(dq.front(), 1);
+}
+
+TEST_F(DqTest, eraseSingleElement) {
+    contDQ::Deque<int> dq = {1};
+    dq.erase(dq.cbegin());
+    EXPECT_EQ(dq.size(), 0);
+}
+
+TEST_F(DqTest, eraseEmpty) {
+    contDQ::Deque<int> dq;
+    EXPECT_THROW(dq.erase(dq.cbegin()), std::out_of_range);
+}
+
+TEST_F(DqTest, resizeToZero) {
+    contDQ::Deque<int> dq = {1, 2, 3};
+    EXPECT_THROW(dq.resize(0, 0), std::out_of_range);
+}
+
+TEST_F(DqTest, resizeEmpty) {
+    contDQ::Deque<int> dq;
+    dq.resize(3, 42);
+    EXPECT_EQ(dq.size(), 3);
+    EXPECT_EQ(dq.front(), 42);
+}
+
+TEST(compare, differentLengths) {
+    contDQ::Deque<int> dq1 = {1, 2, 3};
+    contDQ::Deque<int> dq2 = {1, 2};
+    EXPECT_FALSE(dq1 == dq2);
+    EXPECT_TRUE(dq1 != dq2);
+}
+
+TEST(compare, spaceshipAllCases) {
+    contDQ::Deque<int> dq1 = {1, 2, 3};
+    contDQ::Deque<int> dq2 = {1, 2, 4};
+    contDQ::Deque<int> dq3 = {1, 2, 3};
+    EXPECT_TRUE((dq1 <=> dq2) == std::strong_ordering::less);
+    EXPECT_TRUE((dq2 <=> dq1) == std::strong_ordering::greater);
+    EXPECT_TRUE((dq1 <=> dq3) == std::strong_ordering::equal);
+}
+
+TEST_F(DqTest, swapWithEmpty) {
+    contDQ::Deque<int> dq1 = {1, 2, 3};
+    contDQ::Deque<int> dq2;
+    dq1.swap(dq2);
+    EXPECT_TRUE(dq1.empty());
+    EXPECT_EQ(dq2.size(), 3);
+}
+
+TEST_F(DqTest, swapSelf) {
+    deque.swap(deque);
+    EXPECT_EQ(deque.size(), 5);
+}
+
+TEST_F(DqTest, resizeToOne) {
+    deque.resize(1, 0);
+    EXPECT_EQ(deque.size(), 1);
+    EXPECT_EQ(deque.front(), 1);
+}
+
 TEST(operatorEq, CopyOperator) {
     contDQ::Deque<int> dq = {1, 3, 5, 7};
     contDQ::Deque<int> dq2;
@@ -407,7 +500,7 @@ TEST(compare, spaceship) {
     contDQ::Deque<int> dq1 = {1, 2, 3, 4};
     contDQ::Deque<int> dq2 = {1, 2, 3};
     contDQ::Deque<int> dq3 = {1, 2, 3, 5};
-    EXPECT_TRUE(dq1 <= dq2);
+    EXPECT_FALSE(dq1 <= dq2);
     EXPECT_TRUE(dq1 <= dq3);
     EXPECT_TRUE(dq1 < dq3);
 }

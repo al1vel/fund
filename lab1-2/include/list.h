@@ -343,12 +343,18 @@ namespace cont {
 
         virtual void insert(ConstIterator posIter, noConstT val) {
             if (posIter.ptr == head) {
-                Node* h = head;
-                Node* newNode = createNode(val);
-                newNode->next = h;
-                h->prev = newNode;
-                head = newNode;
-                len++;
+                if (posIter.ptr == nullptr) {
+                    head = createNode(val);
+                    tail = head;
+                    len = 1;
+                } else {
+                    Node* h = head;
+                    Node* newNode = createNode(val);
+                    newNode->next = h;
+                    h->prev = newNode;
+                    head = newNode;
+                    len++;
+                }
             }
             else if (posIter.ptr == nullptr) {
                 Node* newNode = createNode(val);
