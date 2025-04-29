@@ -160,9 +160,6 @@ namespace cont {
         }
 
         void shrink_to_fit() {
-            // if (len == 0) {
-            //     return;
-            // }
             T* new_data = alloc.allocate(len * sizeof(T));
             std::copy(data_, data_ + len, new_data);
             alloc.deallocate(data_, cap * sizeof(T));
@@ -196,7 +193,8 @@ namespace cont {
             if (len == 0) {
                 throw std::out_of_range("Popped empty vector.");
             }
-            data_[len - 1].~T();
+            //data_[len - 1].~T();
+            std::allocator_traits<decltype(alloc)>::destroy(alloc, &data_[len - 1]);
             len--;
         }
 
@@ -220,7 +218,8 @@ namespace cont {
             if (index >= len) {
                 throw std::out_of_range("Erase index out of range.");
             }
-            data_[index].~T();
+            std::allocator_traits<decltype(alloc)>::destroy(alloc, &data_[index]);
+            //data_[index].~T();
             for (siz i = index; i < len - 1; ++i) {
                 data_[i] = data_[i + 1];
             }

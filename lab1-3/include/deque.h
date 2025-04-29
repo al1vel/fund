@@ -24,9 +24,7 @@ namespace contDQ {
         }
 
         Deque(Deque &&other) noexcept {
-            //std::cout << "Called move constructor" << std::endl;
             list = other.list;
-            //other.list = nullptr;
         }
 
         ~Deque() override {
@@ -34,7 +32,6 @@ namespace contDQ {
         }
 
         Deque &operator=(const Deque &other) {
-            //std::cout << "Called copy operator" << std::endl;
             if (this != &other) {
                 list = other.list;
             }
@@ -42,10 +39,8 @@ namespace contDQ {
         }
 
         Deque &operator=(Deque &&other) noexcept {
-            //std::cout << "Called move operator" << std::endl;
             if (this != &other) {
                 list = other.list;
-                //other.list = 0;
             }
             return *this;
         }
