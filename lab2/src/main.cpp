@@ -10,4 +10,9 @@ int main() {
     std::cout << bigint2 << std::endl;
     std::cout << bigint3 << std::endl;
     std::cout << bigint4 << std::endl;
+
+    BigInt bigint5("111222333444555666777888999000000111222333444555666777");
+    BigInt bigint6("12345111222333444555666777888999000000111222333444555666777");
+    BigInt res = bigint5 + bigint6;
+    std::cout << res << std::endl;
 }

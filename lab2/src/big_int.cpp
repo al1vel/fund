@@ -1,5 +1,4 @@
 #include "big_int.h"
-#include <string>
 
 BigInt::BigInt() {
     digits.push_back(0);
@@ -28,6 +27,7 @@ BigInt::BigInt(const std::string &str) {
             isNegative = true;
             temp = temp.substr(1);
         }
+        if (std::all_of(temp.begin(), temp.end(), ::isdigit)) {}
         for (long long i = temp.length(); i > 0; i -= 9) {
             if (i < 9) {
                 digits.push_back(atoi(temp.substr(0, i).c_str()));
@@ -51,7 +51,6 @@ BigInt::~BigInt() {
     digits.clear();
 }
 
-
 std::ostream &operator<<(std::ostream &os, const BigInt &num) {
     if (num.digits.empty() || num.digits.back() == 0) {
         os << "0";
@@ -64,4 +63,52 @@ std::ostream &operator<<(std::ostream &os, const BigInt &num) {
         }
     }
     return os;
+}
+
+BigInt &BigInt::operator=(const BigInt &other) {
+    if (this != &other) {
+        isNegative = other.isNegative;
+        digits = std::vector<unsigned long long>(other.digits);
+    }
+    return *this;
+}
+
+BigInt &BigInt::operator=(BigInt &&other) noexcept {
+    if (this != &other) {
+        isNegative = other.isNegative;
+        digits = std::move(other.digits);
+    }
+    return *this;
+}
+
+BigInt BigInt::operator+(const BigInt &other) const {
+    std::size_t thisSize = digits.size();
+    std::size_t otherSize = other.digits.size();
+
+    BigInt result = BigInt();
+    long long add = 0;
+    long long sign = isNegative ? (-1) : 1;
+    if (thisSize < otherSize) {
+        for (std::size_t i = 0; i < thisSize; i++) {
+            long long temp = digits[i] * sign + other.digits[i] * sign + add * sign;
+            if (temp >= BASE) {
+                temp -= BASE;
+                add = BASE;
+            } else {
+                add = 0;
+            }
+            result.digits.push_back(temp);
+        }
+        for (std::size_t i = thisSize; i < otherSize; i++) {
+            long long temp = digits[i] * sign + add * sign;
+            if (temp >= BASE) {
+                temp -= BASE;
+                add = BASE;
+            } else {
+                add = 0;
+            }
+            result.digits.push_back(temp);
+        }
+    }
+    return result;
 }
