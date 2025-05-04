@@ -5,12 +5,15 @@
 #include <vector>
 #include <string>
 #include <algorithm>
+#include <cstdint>
 
 #define BASE 1000000000
 
+std::size_t num_length(uint64_t num);
+
 class BigInt {
 private:
-    std::vector<unsigned long long> digits;
+    std::vector<uint64_t> digits;
     bool isNegative;
 
 public:
@@ -40,6 +43,9 @@ public:
     bool operator>(const BigInt &other) const;
     bool operator<=(const BigInt &other) const;
     bool operator>=(const BigInt &other) const;
+
+    BigInt abs() const;
+    void remove_leading_zeros();
 
     [[nodiscard]] BigInt mod_exp(const BigInt &exp, const BigInt &mod) const;
     [[nodiscard]] BigInt fft_multiply(const BigInt &a) const;
