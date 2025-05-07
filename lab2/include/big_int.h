@@ -17,6 +17,7 @@ private:
     bool isNegative;
     BigInt abs() const;
     void remove_leading_zeros();
+    bool is_zero() const;
 
 public:
     BigInt();

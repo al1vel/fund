@@ -9,6 +9,16 @@ std::size_t num_length(uint64_t num) {
     return length;
 }
 
+bool BigInt::is_zero() const {
+    if (this->digits.empty()) {
+        return true;
+    }
+    if (this->digits.size() == 1 && this->digits[0] == 0) {
+        return true;
+    }
+    return false;
+}
+
 
 BigInt::BigInt() {
     isNegative = false;
@@ -300,6 +310,55 @@ BigInt BigInt::operator*(const BigInt &other) const {
     if (result.digits.size() == 1 && result.digits[0] == 0) {
         result.isNegative = false;
     }
+    return result;
+}
 
+BigInt BigInt::operator/(const BigInt &other) const {
+    BigInt result;
+    if (other.is_zero()) {
+        throw std::runtime_error("BigInt::division by zero");
+    }
+
+    if (*this == other) {
+        result.digits.push_back(1);
+        return result;
+    }
+
+    if (*this < other) {
+        result.digits.push_back(0);
+        return result;
+    }
+
+    BigInt dividend = this->abs();
+    BigInt divisor = other.abs();
+    BigInt current;
+
+    result.digits.resize(dividend.digits.size());
+
+    for (std::size_t i = dividend.digits.size(); i-- > 0;) {
+        // Сдвигаем current на разряд влево и добавляем следующий разряд
+        current.digits.insert(current.digits.begin(), dividend.digits[i]);
+        current.remove_leading_zeros();
+
+        uint64_t x = 0, l = 0, r = BASE;
+
+        // Бинарный поиск по цифре в текущей позиции
+        while (l <= r) {
+            uint64_t m = (l + r) / 2;
+            BigInt t = divisor * BigInt(m);
+            if (t <= current) {
+                x = m;
+                l = m + 1;
+            } else {
+                r = m - 1;
+            }
+        }
+
+        result.digits[i] = x;
+        current = current - divisor * BigInt(x);
+    }
+
+    result.remove_leading_zeros();
+    result.isNegative = (isNegative != other.isNegative) && (!result.is_zero());
     return result;
 }
