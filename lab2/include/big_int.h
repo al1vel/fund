@@ -15,6 +15,8 @@ class BigInt {
 private:
     std::vector<uint64_t> digits;
     bool isNegative;
+    BigInt abs() const;
+    void remove_leading_zeros();
 
 public:
     BigInt();
@@ -44,8 +46,7 @@ public:
     bool operator<=(const BigInt &other) const;
     bool operator>=(const BigInt &other) const;
 
-    BigInt abs() const;
-    void remove_leading_zeros();
+
 
     [[nodiscard]] BigInt mod_exp(const BigInt &exp, const BigInt &mod) const;
     [[nodiscard]] BigInt fft_multiply(const BigInt &a) const;

@@ -211,6 +211,10 @@ BigInt BigInt::operator+(const BigInt &other) const {
             result.digits.push_back(sum % BASE);
             add = sum / BASE;
         }
+        while (add > 0) {
+            result.digits.push_back(add % BASE);
+            add = add / BASE;
+        }
 
     } else if (isNegative && other.isNegative) {
         std::size_t n = std::max(digits.size(), other.digits.size());
@@ -225,6 +229,10 @@ BigInt BigInt::operator+(const BigInt &other) const {
             }
             result.digits.push_back(sum % BASE);
             add = sum / BASE;
+        }
+        while (add > 0) {
+            result.digits.push_back(add % BASE);
+            add = add / BASE;
         }
         result.isNegative = true;
 
@@ -266,4 +274,32 @@ BigInt BigInt::operator+(const BigInt &other) const {
     return result;
 }
 
+BigInt BigInt::operator-(const BigInt &other) const {
+    BigInt otherTmp = other;
+    otherTmp.isNegative = !otherTmp.isNegative;
+    BigInt result = *this + otherTmp;
+    return result;
+}
 
+BigInt BigInt::operator*(const BigInt &other) const {
+    BigInt result;
+    result.digits.resize(digits.size() + other.digits.size(), 0);
+
+    for (std::size_t i = 0; i < digits.size(); ++i) {
+        uint64_t add = 0;
+        for (std::size_t j = 0; j < other.digits.size() || add != 0; ++j) {
+            uint64_t current = result.digits[i + j] + digits[i] * (j < other.digits.size() ? other.digits[j] : 0) + add;
+            result.digits[i + j] = current % BASE;
+            add = current / BASE;
+        }
+    }
+
+    result.isNegative = (isNegative != other.isNegative);
+    result.remove_leading_zeros();
+
+    if (result.digits.size() == 1 && result.digits[0] == 0) {
+        result.isNegative = false;
+    }
+
+    return result;
+}
