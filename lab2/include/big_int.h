@@ -18,7 +18,7 @@ private:
     BigInt abs() const;
     void remove_leading_zeros();
     bool is_zero() const;
-    void shift_left();
+    BigInt operator%(const BigInt &other) const;
 
 public:
     BigInt();
@@ -47,8 +47,6 @@ public:
     bool operator>(const BigInt &other) const;
     bool operator<=(const BigInt &other) const;
     bool operator>=(const BigInt &other) const;
-
-
 
     [[nodiscard]] BigInt mod_exp(const BigInt &exp, const BigInt &mod) const;
     [[nodiscard]] BigInt fft_multiply(const BigInt &a) const;

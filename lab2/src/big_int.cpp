@@ -341,6 +341,7 @@ BigInt BigInt::operator/(const BigInt &other) const {
 
     for (int i = n - 1; i >= 0; --i) {
         current.digits.insert(current.digits.begin(), digits[i]);
+        current.remove_leading_zeros();
 
         uint64_t l = 0, r = BASE;
         while (l <= r) {
@@ -399,4 +400,26 @@ std::istream &operator>>(std::istream &is, BigInt &other) {
     is >> input;
     other = BigInt(input);
     return is;
+}
+
+BigInt BigInt::operator%(const BigInt &other) const {
+    BigInt quotient = *this / other;
+    BigInt result = *this - (quotient * other);
+    result.isNegative = false;
+    return result;
+}
+
+BigInt BigInt::mod_exp(const BigInt &exp, const BigInt &mod) const {
+    if (exp < BigInt(2)) {
+        if (exp == BigInt(1)) {
+            return *this % mod;
+        }
+        return BigInt(1);
+    }
+    BigInt result = mod_exp(exp / BigInt(2), mod);
+    result = (result * result) % mod;
+    if (exp.digits[0] % 2 == 1) {
+        result = (result * *this) % mod;
+    }
+    return result;
 }
