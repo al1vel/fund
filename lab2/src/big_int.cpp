@@ -316,55 +316,6 @@ BigInt BigInt::operator*(const BigInt &other) const {
     return result;
 }
 
-// BigInt BigInt::operator/(const BigInt &other) const {
-//     BigInt result;
-//     if (other.is_zero()) {
-//         throw std::runtime_error("BigInt::division by zero");
-//     }
-//
-//     if (*this == other) {
-//         result.digits.push_back(1);
-//         return result;
-//     }
-//
-//     if (*this < other) {
-//         result.digits.push_back(0);
-//         return result;
-//     }
-//
-//     BigInt dividend = this->abs();
-//     BigInt divisor = other.abs();
-//     result.digits.resize(dividend.digits.size());
-//
-//     BigInt current;
-//
-//     for (std::size_t i = dividend.digits.size(); i-- > 0;) {
-//         current.digits.insert(current.digits.begin(), dividend.digits[i]);
-//         current.remove_leading_zeros();
-//
-//         uint64_t left = 0, right = BASE, mid;
-//         uint64_t digit = 0;
-//
-//         while (left <= right) {
-//             mid = (left + right) / 2;
-//             BigInt t = divisor * BigInt(mid);
-//             if (t <= current) {
-//                 digit = mid;
-//                 left = mid + 1;
-//             } else {
-//                 right = mid - 1;
-//             }
-//         }
-//
-//         result.digits[i] = digit;
-//         current = current - divisor * BigInt(digit);
-//     }
-//
-//     result.isNegative = (isNegative != other.isNegative);
-//     result.remove_leading_zeros();
-//     return result;
-// }
-
 BigInt BigInt::operator/(const BigInt &other) const {
     if (other.is_zero()) {
         throw std::runtime_error("Division by zero");
@@ -408,6 +359,44 @@ BigInt BigInt::operator/(const BigInt &other) const {
         }
         --res_pos;
     }
+    result.isNegative = (isNegative != other.isNegative);
     result.remove_leading_zeros();
     return result;
+}
+
+BigInt& BigInt::operator++() {
+    *this = *this + BigInt(1);
+    return *this;
+}
+
+BigInt& BigInt::operator--() {
+    *this = *this + BigInt(-1);
+    return *this;
+}
+
+BigInt& BigInt::operator+=(const BigInt &other) {
+    *this = *this + other;
+    return *this;
+}
+
+BigInt& BigInt::operator-=(const BigInt &other) {
+    *this = *this - other;
+    return *this;
+}
+
+BigInt& BigInt::operator*=(const BigInt &other) {
+    *this = *this * other;
+    return *this;
+}
+
+BigInt& BigInt::operator/=(const BigInt &other) {
+    *this = *this / other;
+    return *this;
+}
+
+std::istream &operator>>(std::istream &is, BigInt &other) {
+    std::string input;
+    is >> input;
+    other = BigInt(input);
+    return is;
 }

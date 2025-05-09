@@ -14,9 +14,18 @@ int main() {
     // BigInt res = f * e;
     //std::cout << res << std::endl;
 
-    BigInt hui("12345678901234908274890284568902734023785890236789032347896892346891360497134671376389046713894678913476937816346");
-    BigInt hui1("555513789046913476891347691347");
+    // BigInt hui("12345678901234908274890284568902734023785890236789032347896892346891360497134671376389046713894678913476937816346");
+    // BigInt hui1("555513789046913476891347691347");
+    //
+    // BigInt huiRes = hui / hui1;
+    //std::cout << huiRes << std::endl;
 
-    BigInt huiRes = hui / hui1;
-    std::cout << huiRes << std::endl;
+    // BigInt bigint1("100000000000000000000");
+    // BigInt bigint2("1000000000000000000000000000");
+    // BigInt res = bigint1 - bigint2;
+    // std::cout << res << std::endl;
+
+    BigInt a;
+    std::cin >> a;
+    std::cout << a << std::endl;
 }
