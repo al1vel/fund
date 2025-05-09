@@ -73,7 +73,7 @@ BigInt::~BigInt() {
 }
 
 std::ostream &operator<<(std::ostream &os, const BigInt &num) {
-    if (num.digits.empty() || num.digits.back() == 0) {
+    if (num.digits.empty() || (num.digits.back() == 0 && num.digits.size() == 1)) {
         os << "0";
     } else {
         if (num.isNegative) {
@@ -153,10 +153,13 @@ bool BigInt::operator<(const BigInt &other) const {
         return true;
     }
     bool findLess = false;
-    for (std::size_t i = 0; i < digits.size(); ++i) {
+    int n = digits.size();
+    for (int i = n - 1; i >= 0; --i) {
         if (!isNegative) {
             if (digits[i] > other.digits[i]) {
-                return false;
+                if (!findLess) {
+                    return false;
+                }
             }
             if (digits[i] < other.digits[i]) {
                 findLess = true;
@@ -313,52 +316,98 @@ BigInt BigInt::operator*(const BigInt &other) const {
     return result;
 }
 
+// BigInt BigInt::operator/(const BigInt &other) const {
+//     BigInt result;
+//     if (other.is_zero()) {
+//         throw std::runtime_error("BigInt::division by zero");
+//     }
+//
+//     if (*this == other) {
+//         result.digits.push_back(1);
+//         return result;
+//     }
+//
+//     if (*this < other) {
+//         result.digits.push_back(0);
+//         return result;
+//     }
+//
+//     BigInt dividend = this->abs();
+//     BigInt divisor = other.abs();
+//     result.digits.resize(dividend.digits.size());
+//
+//     BigInt current;
+//
+//     for (std::size_t i = dividend.digits.size(); i-- > 0;) {
+//         current.digits.insert(current.digits.begin(), dividend.digits[i]);
+//         current.remove_leading_zeros();
+//
+//         uint64_t left = 0, right = BASE, mid;
+//         uint64_t digit = 0;
+//
+//         while (left <= right) {
+//             mid = (left + right) / 2;
+//             BigInt t = divisor * BigInt(mid);
+//             if (t <= current) {
+//                 digit = mid;
+//                 left = mid + 1;
+//             } else {
+//                 right = mid - 1;
+//             }
+//         }
+//
+//         result.digits[i] = digit;
+//         current = current - divisor * BigInt(digit);
+//     }
+//
+//     result.isNegative = (isNegative != other.isNegative);
+//     result.remove_leading_zeros();
+//     return result;
+// }
+
 BigInt BigInt::operator/(const BigInt &other) const {
-    BigInt result;
     if (other.is_zero()) {
-        throw std::runtime_error("BigInt::division by zero");
+        throw std::runtime_error("Division by zero");
     }
 
-    if (*this == other) {
-        result.digits.push_back(1);
-        return result;
-    }
-
-    if (*this < other) {
-        result.digits.push_back(0);
-        return result;
-    }
-
-    BigInt dividend = this->abs();
     BigInt divisor = other.abs();
+    BigInt dividend = this->abs();
+    BigInt result;
+    result.digits.resize(dividend.digits.size(), 0);
+    int res_pos = dividend.digits.size() - 1;
+
+    if (dividend < divisor) {
+        return BigInt(0);
+    }
+    if (dividend == divisor) {
+        BigInt res(1);
+        res.isNegative = (isNegative != other.isNegative);
+        return res;
+    }
+
+    int n = dividend.digits.size();
     BigInt current;
 
-    result.digits.resize(dividend.digits.size());
+    for (int i = n - 1; i >= 0; --i) {
+        current.digits.insert(current.digits.begin(), digits[i]);
 
-    for (std::size_t i = dividend.digits.size(); i-- > 0;) {
-        // Сдвигаем current на разряд влево и добавляем следующий разряд
-        current.digits.insert(current.digits.begin(), dividend.digits[i]);
-        current.remove_leading_zeros();
-
-        uint64_t x = 0, l = 0, r = BASE;
-
-        // Бинарный поиск по цифре в текущей позиции
+        uint64_t l = 0, r = BASE;
         while (l <= r) {
             uint64_t m = (l + r) / 2;
-            BigInt t = divisor * BigInt(m);
-            if (t <= current) {
-                x = m;
+            BigInt tmp = BigInt(m) * divisor;
+            if (tmp <= current) {
                 l = m + 1;
             } else {
                 r = m - 1;
             }
         }
 
-        result.digits[i] = x;
-        current = current - divisor * BigInt(x);
+        result.digits[res_pos] = r;
+        if (r != 0) {
+            current = current - (BigInt(r) * divisor);
+        }
+        --res_pos;
     }
-
     result.remove_leading_zeros();
-    result.isNegative = (isNegative != other.isNegative) && (!result.is_zero());
     return result;
 }

@@ -18,6 +18,7 @@ private:
     BigInt abs() const;
     void remove_leading_zeros();
     bool is_zero() const;
+    void shift_left();
 
 public:
     BigInt();
