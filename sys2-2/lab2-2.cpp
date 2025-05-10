@@ -7,13 +7,13 @@
 #include <sstream>
 #include <iomanip>
 #include <netinet/in.h>
-#include <streambuf>
 #include <sys/ipc.h>
 #include <sys/shm.h>
 #include <cstring>
-#include <iostream>
 #include <unistd.h>
+#include <arpa/inet.h>
 #include <sys/sem.h>
+#include <sys/wait.h>
 
 struct tcp_traffic_pkg {
     in_addr_t src_addr;
@@ -25,10 +25,10 @@ struct tcp_traffic_pkg {
 
 struct stat_pkg {
     int command;
-    std::string ip;
     size_t send_sz;
     size_t recv_sz;
     size_t connect_cnt;
+    uint8_t ip[4];
 };
 
 class LoggerBuilder;
@@ -163,123 +163,131 @@ enum {
 };
 
 int main() {
-    pid_t pid = fork();
-    if (pid == -1) {
-        throw std::runtime_error("Fork failed.");
-    }
+    //Manager
+    std::cout << "Manager process started." << std::endl;
 
-    if (pid == 0) {
-        pid_t pid2 = fork();
-        if (pid2 == -1) {
-            throw std::runtime_error("Fork failed.");
-        }
+    std::ofstream("connect_generator.key").put('\n');
+    std::ofstream("connect_analyzer.key").put('\n');
 
-        if (pid2 == 0) {
-            //Generator
-            key_t gen_key = ftok("connect_generator", 1);
-            int gen_shm_id = shmget(gen_key, 256, 0666 | IPC_CREAT);
-            auto* shm_ptr = static_cast<stat_pkg*>(shmat(gen_shm_id, nullptr, 0));
+    key_t gen_key = ftok("connect_generator.key", 1);
+    int gen_shm_id = shmget(gen_key, 256, 0666 | IPC_CREAT);
+    auto *gen_buf = static_cast<stat_pkg*>(shmat(gen_shm_id, nullptr, 0));
 
-            key_t sem_key = ftok("connect_generator", 2);
-            int sem_id = semget(sem_key, 1, 0666 | IPC_CREAT);
+    key_t an_key = ftok("connect_analyzer.key", 2);
+    int an_shm_id = shmget(an_key, 256, 0666 | IPC_CREAT);
+    auto *an_buf = static_cast<stat_pkg*>(shmat(an_shm_id, nullptr, 0));
 
-            while (true) {
-                sem_wait(sem_id);
+    key_t gen_sem_key = ftok("connect_generator.key", 3);
+    int gen_sem_id = semget(gen_sem_key, 1, 0666 | IPC_CREAT);
+    sem_set(gen_sem_id, 0);
 
+    key_t an_sem_key = ftok("connect_analyzer.key", 4);
+    int an_sem_id = semget(an_sem_key, 1, 0666 | IPC_CREAT);
+    sem_set(an_sem_id, 0);
 
-                std::cout << "Generator got:\n";
-                std::cout << "command = " << shm_ptr->command << "\n";
-                std::cout << "connect_cnt = " << shm_ptr->connect_cnt << "\n";
-                std::cout << "recv_sz = " << shm_ptr->recv_sz << "\n";
-                std::cout << "send_sz = " << shm_ptr->send_sz << "\n";
-
-                if (shm_ptr->command == quit) {
-                    break;
-                }
-            }
-            shmdt(shm_ptr);
-
-        } else {
-            //Analyzer
-            key_t an_key = ftok("connect_analyzer", 1);
-            int an_shm_id = shmget(an_key, 256, 0666 | IPC_CREAT);
-            auto* shm_ptr = static_cast<stat_pkg*>(shmat(an_shm_id, nullptr, 0));
-
-            key_t sem_key = ftok("connect_analyzer", 2);
-            int sem_id = semget(sem_key, 1, 0666 | IPC_CREAT);
-
-            while (true) {
-                sem_wait(sem_id);
-
-
-                std::cout << "Generator got:\n";
-                std::cout << "command = " << shm_ptr->command << "\n";
-                std::cout << "connect_cnt = " << shm_ptr->connect_cnt << "\n";
-                std::cout << "recv_sz = " << shm_ptr->recv_sz << "\n";
-                std::cout << "send_sz = " << shm_ptr->send_sz << "\n";
-
-                if (shm_ptr->command == quit) {
-                    break;
-                }
-            }
-            shmdt(shm_ptr);
-        }
-
-    } else {
-        //Manager
-        std::cout << "Manager process started." << std::endl;
-
-        key_t gen_key = ftok("connect_analyzer", 1);
-        int gen_shm_id = shmget(gen_key, 256, 0666 | IPC_CREAT);
-        auto *gen_buf = static_cast<stat_pkg*>(shmat(gen_shm_id, nullptr, 0));
-
-        key_t an_key = ftok("connect_generator", 1);
-        int an_shm_id = shmget(an_key, 256, 0666 | IPC_CREAT);
-        auto *an_buf = static_cast<stat_pkg*>(shmat(an_shm_id, nullptr, 0));
-
-        key_t gen_sem_key = ftok("connect_generator", 2);
-        int gen_sem_id = semget(gen_sem_key, 1, 0666 | IPC_CREAT);
-        sem_set(gen_sem_id, 0);
-
-        key_t an_sem_key = ftok("connect_analyzer", 2);
-        int an_sem_id = semget(an_sem_key, 1, 0666 | IPC_CREAT);
-        sem_set(an_sem_id, 0);
-
-        std::cout << "Available commands:\n1.begin\n1.stat <ip>\n2.stop\n3.continue\n4.quit\n" << std::endl;
-        std::string command;
+    pid_t generator_pid = fork();
+    if (generator_pid == 0) {
+        //Generator
         while (true) {
-            if (!std::getline(std::cin, command)) {
-                break;
+            sem_wait(gen_sem_id);
+            std::cout << "Generator got:\n";
+            std::cout << "command = " << gen_buf->command << "\n";
+            std::cout << "connect_cnt = " << gen_buf->connect_cnt << "\n";
+            std::cout << "recv_sz = " << gen_buf->recv_sz << "\n";
+            std::cout << "send_sz = " << gen_buf->send_sz << "\n";
+            std::cout << "ip: ";
+            for (int i = 0; i < 4; ++i) {
+                std::cout << static_cast<int>(an_buf->ip[i]);
+                if (i != 3) std::cout << ".";
             }
-            if (command == "quit") {
-                stat_pkg pkg {quit, "", 0, 0, 0};
-                *gen_buf = pkg;
-                sem_signal(gen_sem_id);
+            std::cout << std::endl;
 
-                *an_buf = pkg;
-                sem_signal(an_sem_id);
+            if (gen_buf->command == quit) {
                 break;
-            }
-            if (command == "begin") {
-                stat_pkg pkg {begin, "", 0, 0, 0};
-                *gen_buf = pkg;
-                sem_signal(gen_sem_id);
-            }
-            if (command.substr(0, 4) == "stat") {
-                std::string ip = command.substr(4);
-                stat_pkg pkg {statistic, "", 0, 0, 0};
-                *an_buf = pkg;
-                sem_signal(an_sem_id);
             }
         }
         shmdt(gen_buf);
-        shmdt(an_buf);
-        shmctl(gen_shm_id, IPC_RMID, nullptr);
-        shmctl(an_shm_id, IPC_RMID, nullptr);
-        semctl(gen_sem_id, 0, IPC_RMID);
-        semctl(an_sem_id, 0, IPC_RMID);
+        return 0;
+    }
+    if (generator_pid == -1) {
+        perror("fork generator failed");
+        return 1;
     }
 
+    // Запуск analyzer
+    pid_t analyzer_pid = fork();
+    if (analyzer_pid == 0) {
+        //Analyzer
+        while (true) {
+            sem_wait(an_sem_id);
+            std::cout << "Analyzer got:\n";
+            std::cout << "command = " << an_buf->command << "\n";
+            std::cout << "connect_cnt = " << an_buf->connect_cnt << "\n";
+            std::cout << "recv_sz = " << an_buf->recv_sz << "\n";
+            std::cout << "send_sz = " << an_buf->send_sz << "\n";
+            std::cout << "ip: ";
+            for (int i = 0; i < 4; ++i) {
+                std::cout << static_cast<int>(an_buf->ip[i]);
+                if (i != 3) std::cout << ".";
+            }
+            std::cout << std::endl;
+
+            if (an_buf->command == quit) {
+                break;
+            }
+        }
+        shmdt(an_buf);
+        return 0;
+    }
+    if (analyzer_pid == -1) {
+        perror("fork analyzer failed");
+        return 1;
+    }
+
+    std::cout << "Available commands:\n1.begin\n1.stat <ip>\n2.stop\n3.continue\n4.quit\n" << std::endl;
+    std::string command;
+    while (true) {
+        if (!std::getline(std::cin, command)) {
+            break;
+        }
+        if (command == "quit") {
+            stat_pkg pkg {quit, 0, 0, 0, {0, 0, 0, 0}};
+            *gen_buf = pkg;
+            sem_signal(gen_sem_id);
+
+            *an_buf = pkg;
+            sem_signal(an_sem_id);
+            break;
+        }
+        if (command == "begin") {
+            stat_pkg pkg {begin, 0, 0, 0, {0, 0, 0, 0}};
+            *gen_buf = pkg;
+            sem_signal(gen_sem_id);
+        }
+        if (command.substr(0, 4) == "stat") {
+            std::string ip_str = command.substr(5);
+            uint8_t ip[4];
+            if (inet_pton(AF_INET, ip_str.c_str(), ip) != 1) {
+                std::cout << "Invalid IP address." << std::endl;
+                continue;
+            }
+            stat_pkg pkg {statistic, 0, 0, 0};
+            std::copy(ip, ip + 4, pkg.ip);
+            *an_buf = pkg;
+            sem_signal(an_sem_id);
+        }
+    }
+    waitpid(analyzer_pid, nullptr, 0);
+    waitpid(generator_pid, nullptr, 0);
+    shmdt(gen_buf);
+    shmdt(an_buf);
+    shmctl(gen_shm_id, IPC_RMID, nullptr);
+    shmctl(an_shm_id, IPC_RMID, nullptr);
+    semctl(gen_sem_id, 0, IPC_RMID);
+    semctl(an_sem_id, 0, IPC_RMID);
+    remove("connect_generator.key");
+    remove("connect_analyzer.key");
+
+    std::cout << "Manager: All child processes finished." << std::endl;
     return 0;
 }
-
