@@ -6,6 +6,39 @@
 #include <ctime>
 #include <sstream>
 #include <iomanip>
+#include <streambuf>
+
+
+class VectorStreamBuf : public std::streambuf {
+private:
+    std::vector<std::string>& buffer;
+    std::string current_line;
+
+protected:
+    int overflow(int ch) override {
+        if (ch == traits_type::eof()) return ch;
+
+        if (ch == '\n') {
+            buffer.push_back(std::move(current_line));
+            current_line.clear();
+        } else {
+            current_line += static_cast<char>(ch);
+        }
+
+        return ch;
+    }
+
+    int sync() override {
+        if (!current_line.empty()) {
+            buffer.push_back(std::move(current_line));
+            current_line.clear();
+        }
+        return 0;
+    }
+
+public:
+    explicit VectorStreamBuf(std::vector<std::string>& buf) : buffer(buf) {}
+};
 
 class LoggerBuilder;
 
@@ -103,11 +136,14 @@ public:
 };
 
 int main() {
+    std::vector<std::string> log_buffer;
+    auto* vsb = new VectorStreamBuf(log_buffer);
+    auto* vector_stream = new std::ostream(vsb);
+
     Logger* my_logger = LoggerBuilder()
                             .set_level(Logger::WARNING)
                             .add_handler(std::cout)
-                            .add_handler(std::make_unique<std::ofstream>("/home/begemot/fund/sys2/log.txt"))
-                            .add_handler(std::make_unique<std::ofstream>("/home/begemot/fund/sys2/log2.txt"))
+                            .add_handler(*vector_stream)
                             .make_object();
 
     my_logger->critical("Process 101 died.");
@@ -117,5 +153,7 @@ int main() {
     my_logger->debug("Func <add>: (5, 10).");
 
     delete my_logger;
+    delete vsb;
+    delete vector_stream;
     return 0;
 }

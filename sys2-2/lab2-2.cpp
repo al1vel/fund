@@ -10,10 +10,44 @@
 #include <sys/ipc.h>
 #include <sys/shm.h>
 #include <cstring>
+#include <random>
+#include <thread>
 #include <unistd.h>
 #include <arpa/inet.h>
 #include <sys/sem.h>
 #include <sys/wait.h>
+#include <streambuf>
+
+class VectorStreamBuf : public std::streambuf {
+private:
+    std::vector<std::string>& buffer;
+    std::string current_line;
+
+protected:
+    int overflow(int ch) override {
+        if (ch == traits_type::eof()) return ch;
+
+        if (ch == '\n') {
+            buffer.push_back(std::move(current_line));
+            current_line.clear();
+        } else {
+            current_line += static_cast<char>(ch);
+        }
+
+        return ch;
+    }
+
+    int sync() override {
+        if (!current_line.empty()) {
+            buffer.push_back(std::move(current_line));
+            current_line.clear();
+        }
+        return 0;
+    }
+
+public:
+    explicit VectorStreamBuf(std::vector<std::string>& buf) : buffer(buf) {}
+};
 
 struct tcp_traffic_pkg {
     in_addr_t src_addr;
@@ -162,6 +196,52 @@ enum {
     quit
 };
 
+std::string create_log() {
+    std::string ips[10] = {
+        "1.2.3.4",
+        "127.0.0.1",
+        "128.165.0.1",
+        "110.250.1.0",
+        "0.0.0.0",
+        "10.81.50.23",
+        "52.0.52.1",
+        "100.111.34.53",
+        "255.255.255.0",
+        "116.3.123.1"
+    };
+
+    std::string op_types[4] {"CON", "SND", "REC", "DIS"};
+
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_int_distribution<> dist(0, 1000);
+    int random_number = dist(gen);
+    std::string log;
+    if ((random_number % 4 == 0) || (random_number % 4 == 3)) {
+        log = op_types[random_number % 4] + "|" + ips[random_number % 10] + "|" + ips[random_number % 10];
+    } else {
+        log = op_types[random_number % 4] + "|" + ips[random_number % 10] + "|" + ips[random_number % 10] + "|" + std::to_string(random_number);
+    }
+    return log;
+}
+
+bool spam_on = false;
+bool finish = false;
+
+void make_logs(Logger& logger, int i) {
+    while (true) {
+        if (spam_on == true) {
+            // std::cout << i << ": Hello world!" << std::endl;
+            logger.info(create_log());
+        } else {
+            if (finish == true) {
+                break;
+            }
+        }
+        std::this_thread::sleep_for(std::chrono::seconds(1));
+    }
+}
+
 int main() {
     //Manager
     std::cout << "Manager process started." << std::endl;
@@ -185,17 +265,52 @@ int main() {
     int an_sem_id = semget(an_sem_key, 1, 0666 | IPC_CREAT);
     sem_set(an_sem_id, 0);
 
+    std::vector<std::string> log_buffer;
+    auto* vsb = new VectorStreamBuf(log_buffer);
+    auto* vector_stream = new std::ostream(vsb);
+    // std::unique_ptr<VectorStreamBuf> vsb(new VectorStreamBuf(log_buffer));
+    // std::unique_ptr<std::ostream> vector_stream(new std::ostream(vsb.get()));
+
     pid_t generator_pid = fork();
     if (generator_pid == 0) {
         //Generator
+        std::vector<std::thread> threads;
+        // Logger* logger = LoggerBuilder().set_level(Logger::INFO).add_handler(std::move(vector_stream)).make_object();
+        Logger* logger = LoggerBuilder().set_level(Logger::INFO).add_handler(*vector_stream).make_object();
+
+        for (int i = 0; i < 4; ++i) {
+            threads.emplace_back(make_logs, std::ref(*logger), i);
+        }
+
         while (true) {
             sem_wait(gen_sem_id);
             std::cout << "Generator got command: " << gen_buf->command << std::endl;
             if (gen_buf->command == quit) {
+                spam_on = false;
+                finish = true;
                 break;
             }
+            if (gen_buf->command == begin) {
+                spam_on = true;
+            }
+            if (gen_buf->command == stop) {
+                for (auto &log : log_buffer) {
+                    std::cout << log << std::endl;
+                }
+                spam_on = false;
+            }
+            if (gen_buf->command == cont) {
+                spam_on = true;
+            }
         }
+
+        for (auto& t : threads) {
+            t.join();
+        }
+        delete logger;
         shmdt(gen_buf);
+        delete vsb;
+        delete vector_stream;
         return 0;
     }
     if (generator_pid == -1) {
