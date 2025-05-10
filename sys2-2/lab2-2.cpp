@@ -190,18 +190,7 @@ int main() {
         //Generator
         while (true) {
             sem_wait(gen_sem_id);
-            std::cout << "Generator got:\n";
-            std::cout << "command = " << gen_buf->command << "\n";
-            std::cout << "connect_cnt = " << gen_buf->connect_cnt << "\n";
-            std::cout << "recv_sz = " << gen_buf->recv_sz << "\n";
-            std::cout << "send_sz = " << gen_buf->send_sz << "\n";
-            std::cout << "ip: ";
-            for (int i = 0; i < 4; ++i) {
-                std::cout << static_cast<int>(an_buf->ip[i]);
-                if (i != 3) std::cout << ".";
-            }
-            std::cout << std::endl;
-
+            std::cout << "Generator got command: " << gen_buf->command << std::endl;
             if (gen_buf->command == quit) {
                 break;
             }
@@ -214,24 +203,12 @@ int main() {
         return 1;
     }
 
-    // Запуск analyzer
     pid_t analyzer_pid = fork();
     if (analyzer_pid == 0) {
         //Analyzer
         while (true) {
             sem_wait(an_sem_id);
-            std::cout << "Analyzer got:\n";
-            std::cout << "command = " << an_buf->command << "\n";
-            std::cout << "connect_cnt = " << an_buf->connect_cnt << "\n";
-            std::cout << "recv_sz = " << an_buf->recv_sz << "\n";
-            std::cout << "send_sz = " << an_buf->send_sz << "\n";
-            std::cout << "ip: ";
-            for (int i = 0; i < 4; ++i) {
-                std::cout << static_cast<int>(an_buf->ip[i]);
-                if (i != 3) std::cout << ".";
-            }
-            std::cout << std::endl;
-
+            std::cout << "Analyzer got command: " << an_buf->command << std::endl;
             if (an_buf->command == quit) {
                 break;
             }
@@ -275,6 +252,16 @@ int main() {
             std::copy(ip, ip + 4, pkg.ip);
             *an_buf = pkg;
             sem_signal(an_sem_id);
+        }
+        if (command == "stop") {
+            stat_pkg pkg {stop, 0, 0, 0, {0, 0, 0, 0}};
+            *gen_buf = pkg;
+            sem_signal(gen_sem_id);
+        }
+        if (command == "continue") {
+            stat_pkg pkg {cont, 0, 0, 0, {0, 0, 0, 0}};
+            *gen_buf = pkg;
+            sem_signal(gen_sem_id);
         }
     }
     waitpid(analyzer_pid, nullptr, 0);
