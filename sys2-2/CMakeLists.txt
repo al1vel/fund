@@ -1,0 +1,1 @@
+add_executable(gen_analyse lab2-2.cpp)
