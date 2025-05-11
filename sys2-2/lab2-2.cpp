@@ -11,6 +11,7 @@
 #include <sys/shm.h>
 #include <cstring>
 #include <list>
+#include <map>
 #include <random>
 #include <thread>
 #include <unistd.h>
@@ -244,9 +245,9 @@ std::string create_log() {
     int random_number = dist(gen);
     std::string log;
     if ((random_number % 4 == 0) || (random_number % 4 == 3)) {
-        log = op_types[random_number % 4] + ips[(random_number + 1) % 10] + "|" + ips[random_number % 10] + "|";
+        log = op_types[random_number % 4] + ips[(random_number + 1) % 10] + ">" + ips[random_number % 10] + "|";
     } else {
-        log = op_types[random_number % 4] + ips[(random_number + 1) % 10] + "|" + ips[random_number % 10] + "|" + std::to_string(random_number);
+        log = op_types[random_number % 4] + ips[(random_number + 1) % 10] + ">" + ips[random_number % 10] + "|" + std::to_string(random_number);
     }
     return log;
 }
@@ -276,39 +277,46 @@ void analyse_logs(int msgid, int thread_id) {
             }
 
             char operation = msg.mtext[30];
-            char from_ip[16], to_ip[16], num[4];
+            //char from_ip[16], to_ip[16], num[4];
             int pck_sz = 0;
 
-            int i = 31;
-            int ind_from = 0, ind_to = 0, ind_num = 0;
-            while (msg.mtext[i] != '|') {
-                from_ip[ind_from] = msg.mtext[i];
-                ++ind_from;
-                ++i;
-            }
-            from_ip[ind_from] = '\0';
-            ++i;
+            // int i = 31;
+            // int ind_from = 0, ind_to = 0, ind_num = 0;
+            // while (msg.mtext[i] != '|') {
+            //     from_ip[ind_from] = msg.mtext[i];
+            //     ++ind_from;
+            //     ++i;
+            // }
+            // from_ip[ind_from] = '\0';
+            // ++i;
+            //
+            // while (msg.mtext[i] != '|') {
+            //     to_ip[ind_to] = msg.mtext[i];
+            //     ++ind_to;
+            //     ++i;
+            // }
+            // to_ip[ind_to] = '\0';
+            //
+            // if (msg.mtext[i + 1] != '\0') {
+            //     ++i;
+            //     while (msg.mtext[i] != '\0') {
+            //         num[ind_num] = msg.mtext[i];
+            //         ++ind_num;
+            //         ++i;
+            //     }
+            //     num[ind_num] = '\0';
+            //     pck_sz = atoi(num);
+            // }
 
-            while (msg.mtext[i] != '|') {
-                to_ip[ind_to] = msg.mtext[i];
-                ++ind_to;
-                ++i;
-            }
-            to_ip[ind_to] = '\0';
+            std::string frame(msg.mtext);
+            size_t l = frame.find('>');
+            size_t r = frame.find('|');
+            std::string ip_from = frame.substr(31, l);
+            std::string ip_to = frame.substr(l + 1, r - 1);
+            std::cout << "l: " << l << " r: " << r << std::endl;
 
-            if (msg.mtext[i + 1] != '\0') {
-                ++i;
-                while (msg.mtext[i] != '\0') {
-                    num[ind_num] = msg.mtext[i];
-                    ++ind_num;
-                    ++i;
-                }
-                num[ind_num] = '\0';
-                pck_sz = atoi(num);
-            }
-
-            //std::cout << "Thread " << thread_id << " got log: " << msg.mtext << std::endl;
-            std::cout << "Thread " << thread_id << " got log1: " << operation << " " << from_ip << " " << to_ip << " " << pck_sz << std::endl;
+            std::cout << "Thread " << thread_id << " got log: " << msg.mtext << std::endl;
+            std::cout << "Thread " << thread_id << " got log1: " << operation << " <" << ip_from << "> <" << ip_to << "> " << pck_sz << std::endl;
 
             std::this_thread::sleep_for(std::chrono::milliseconds(1100));
         }
@@ -344,9 +352,10 @@ int main() {
     int msg_id = msgget(msg_key, 0666 | IPC_CREAT);
 
 
+    //Generator
     pid_t generator_pid = fork();
     if (generator_pid == 0) {
-        //Generator
+
         std::vector<std::thread> threads;
         auto msg_stream = std::make_unique<MsgQueueOStream>(msg_id);
         Logger* logger = LoggerBuilder().set_level(Logger::INFO).add_handler(std::move(msg_stream)).make_object();
@@ -396,9 +405,11 @@ int main() {
         return 1;
     }
 
+    //Analyzer
     pid_t analyzer_pid = fork();
     if (analyzer_pid == 0) {
-        //Analyzer
+
+        //std::map<char[], ip_stat> data;
 
         std::vector<std::thread> threads;
         for (int i = 0; i < 4; ++i) {
