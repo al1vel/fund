@@ -12,6 +12,7 @@
 #include <cstring>
 #include <list>
 #include <map>
+#include <mutex>
 #include <random>
 #include <thread>
 #include <unistd.h>
@@ -86,10 +87,10 @@ struct stat_pkg {
 };
 
 struct ip_stat {
-    unsigned long long data_sent;
-    unsigned long long data_recv;
-    unsigned long long connections_cnt;
-    std::list<char[]> connected_ips;
+    unsigned long long data_sent = 0;
+    unsigned long long data_recv = 0;
+    unsigned long long connections_cnt = 0;
+    std::list<std::string> connected_ips;
 };
 
 class LoggerBuilder;
@@ -254,11 +255,14 @@ std::string create_log() {
 
 bool spam_on = false;
 bool finish = false;
+std::mutex gen_mutex;
 
 void make_logs(Logger& logger, int i) {
     while (true) {
         if (spam_on == true) {
+            gen_mutex.lock();
             logger.info(create_log());
+            gen_mutex.unlock();
         } else {
             if (finish == true) {
                 break;
@@ -268,56 +272,85 @@ void make_logs(Logger& logger, int i) {
     }
 }
 
-void analyse_logs(int msgid, int thread_id) {
+std::mutex analyse_mutex;
+
+void analyse_logs(int msgid, int thread_id, std::map<std::string, ip_stat>& data) {
     MsgBuf msg{};
     while (true) {
+        analyse_mutex.lock();
         if (msgrcv(msgid, &msg, sizeof(msg.mtext), 0, 0) != -1) {
             if (strcmp(msg.mtext, "QUIT") == 0) {
+                analyse_mutex.unlock();
                 break;
             }
 
             char operation = msg.mtext[30];
-            //char from_ip[16], to_ip[16], num[4];
+            char from_ip[16], to_ip[16], num[4];
             int pck_sz = 0;
 
-            // int i = 31;
-            // int ind_from = 0, ind_to = 0, ind_num = 0;
-            // while (msg.mtext[i] != '|') {
-            //     from_ip[ind_from] = msg.mtext[i];
-            //     ++ind_from;
-            //     ++i;
-            // }
-            // from_ip[ind_from] = '\0';
-            // ++i;
-            //
-            // while (msg.mtext[i] != '|') {
-            //     to_ip[ind_to] = msg.mtext[i];
-            //     ++ind_to;
-            //     ++i;
-            // }
-            // to_ip[ind_to] = '\0';
-            //
-            // if (msg.mtext[i + 1] != '\0') {
-            //     ++i;
-            //     while (msg.mtext[i] != '\0') {
-            //         num[ind_num] = msg.mtext[i];
-            //         ++ind_num;
-            //         ++i;
-            //     }
-            //     num[ind_num] = '\0';
-            //     pck_sz = atoi(num);
-            // }
+            int i = 31;
+            int ind_from = 0, ind_to = 0, ind_num = 0;
+            while (msg.mtext[i] != '>') {
+                from_ip[ind_from] = msg.mtext[i];
+                ++ind_from;
+                ++i;
+            }
+            from_ip[ind_from] = '\0';
+            ++i;
 
-            std::string frame(msg.mtext);
-            size_t l = frame.find('>');
-            size_t r = frame.find('|');
-            std::string ip_from = frame.substr(31, l);
-            std::string ip_to = frame.substr(l + 1, r - 1);
-            std::cout << "l: " << l << " r: " << r << std::endl;
+            while (msg.mtext[i] != '|') {
+                to_ip[ind_to] = msg.mtext[i];
+                ++ind_to;
+                ++i;
+            }
+            to_ip[ind_to] = '\0';
 
-            std::cout << "Thread " << thread_id << " got log: " << msg.mtext << std::endl;
+            if (msg.mtext[i + 1] != '\0') {
+                ++i;
+                while (msg.mtext[i] != '\0') {
+                    num[ind_num] = msg.mtext[i];
+                    ++ind_num;
+                    ++i;
+                }
+                num[ind_num] = '\0';
+                pck_sz = atoi(num);
+            }
+
+            std::string ip_from(from_ip);
+            std::string ip_to(to_ip);
+
+            //std::cout << "Thread " << thread_id << " got log: " << msg.mtext << std::endl;
             std::cout << "Thread " << thread_id << " got log1: " << operation << " <" << ip_from << "> <" << ip_to << "> " << pck_sz << std::endl;
 
+            data.insert(std::pair<std::string, ip_stat>(ip_from, ip_stat()));
+            data.insert(std::pair<std::string, ip_stat>(ip_to, ip_stat()));
+
+            if (operation == 'C') {
+                data[ip_from].connections_cnt += 1;
+                data[ip_to].connections_cnt += 1;
+                data[ip_from].connected_ips.push_back(ip_to);
+                data[ip_to].connected_ips.push_back(ip_from);
+
+            } else if (operation == 'D') {
+                if (data[ip_from].connections_cnt > 0) {
+                    data[ip_from].connections_cnt -= 1;
+                }
+                if (data[ip_to].connections_cnt > 0) {
+                    data[ip_to].connections_cnt -= 1;
+                }
+                data[ip_from].connected_ips.remove(ip_to);
+                data[ip_to].connected_ips.remove(ip_from);
+
+            } else if (operation == 'S') {
+                data[ip_from].data_sent += pck_sz;
+                data[ip_to].data_recv += pck_sz;
+
+            } else if (operation == 'R') {
+                data[ip_from].data_recv += pck_sz;
+                data[ip_to].data_sent += pck_sz;
+            }
+
+            analyse_mutex.unlock();
             std::this_thread::sleep_for(std::chrono::milliseconds(1100));
         }
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
@@ -409,11 +442,11 @@ int main() {
     pid_t analyzer_pid = fork();
     if (analyzer_pid == 0) {
 
-        //std::map<char[], ip_stat> data;
+        std::map<std::string, ip_stat> data;
 
         std::vector<std::thread> threads;
         for (int i = 0; i < 4; ++i) {
-            threads.emplace_back(analyse_logs, msg_id, i);
+            threads.emplace_back(analyse_logs, msg_id, i, std::ref(data));
         }
 
         while (true) {
@@ -421,6 +454,19 @@ int main() {
             std::cout << "Analyzer got command: " << an_buf->command << std::endl;
             if (an_buf->command == quit) {
                 break;
+            }
+            if (an_buf->command == statistic) {
+                std::string requested_ip = std::to_string(an_buf->ip[0]) + "." + std::to_string(an_buf->ip[1]) + "." + std::to_string(an_buf->ip[2]) + "." + std::to_string(an_buf->ip[3]);
+                std::cout << "Collecting stuff for " << requested_ip << std::endl;
+
+                std::cout << " - current connections: " << data[requested_ip].connections_cnt << std::endl;
+                std::cout << " - data received: " << data[requested_ip].data_recv << std::endl;
+                std::cout << " - data sent: " << data[requested_ip].data_sent << std::endl;
+                std::cout << " - connected ips:" << std::endl;
+                for (auto &ip : data[requested_ip].connected_ips) {
+                    std::cout << "   > " << ip << std::endl;
+                }
+                std::cout << std::endl;
             }
         }
 
