@@ -6,3 +6,4 @@ target_link_libraries(sys1-1 PRIVATE crypt)
 
 add_executable(sys1-2 lab2.c)
 add_executable(sys1-3 lab3.c)
+add_executable(sys1-7 lab7.c)
