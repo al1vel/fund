@@ -326,20 +326,32 @@ void analyse_logs(int msgid, int thread_id, std::map<std::string, ip_stat>& data
             data.insert(std::pair<std::string, ip_stat>(ip_to, ip_stat()));
 
             if (operation == 'C') {
-                data[ip_from].connections_cnt += 1;
-                data[ip_to].connections_cnt += 1;
-                data[ip_from].connected_ips.push_back(ip_to);
-                data[ip_to].connected_ips.push_back(ip_from);
+                bool is_already_connected = false;
+                for (auto & connected_ip : data[ip_from].connected_ips) {
+                    if (connected_ip == ip_to) {
+                        is_already_connected = true;
+                    }
+                }
+                if (!is_already_connected) {
+                    data[ip_from].connections_cnt += 1;
+                    data[ip_to].connections_cnt += 1;
+                    data[ip_from].connected_ips.push_back(ip_to);
+                    data[ip_to].connected_ips.push_back(ip_from);
+                }
 
             } else if (operation == 'D') {
-                if (data[ip_from].connections_cnt > 0) {
-                    data[ip_from].connections_cnt -= 1;
+                bool is_already_connected = false;
+                for (auto & connected_ip : data[ip_from].connected_ips) {
+                    if (connected_ip == ip_to) {
+                        is_already_connected = true;
+                    }
                 }
-                if (data[ip_to].connections_cnt > 0) {
+                if (is_already_connected) {
                     data[ip_to].connections_cnt -= 1;
+                    data[ip_from].connections_cnt -= 1;
+                    data[ip_from].connected_ips.remove(ip_to);
+                    data[ip_to].connected_ips.remove(ip_from);
                 }
-                data[ip_from].connected_ips.remove(ip_to);
-                data[ip_to].connected_ips.remove(ip_from);
 
             } else if (operation == 'S') {
                 data[ip_from].data_sent += pck_sz;
