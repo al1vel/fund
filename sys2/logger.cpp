@@ -143,6 +143,7 @@ int main() {
     Logger* my_logger = LoggerBuilder()
                             .set_level(Logger::WARNING)
                             .add_handler(std::cout)
+                            .add_handler(std::make_unique<std::ofstream>("/home/begemot/fund/sys2/log.txt"))
                             .add_handler(*vector_stream)
                             .make_object();
 

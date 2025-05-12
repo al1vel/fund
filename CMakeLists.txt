@@ -11,5 +11,7 @@ add_subdirectory(lab1-4)
 add_subdirectory(lab1-5)
 add_subdirectory(lab1-6)
 add_subdirectory(lab2)
+
+add_subdirectory(sys1)
 add_subdirectory(sys2)
 add_subdirectory(sys2-2)
