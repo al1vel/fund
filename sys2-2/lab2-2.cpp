@@ -257,7 +257,7 @@ bool spam_on = false;
 bool finish = false;
 std::mutex gen_mutex;
 
-void make_logs(Logger& logger, int i) {
+void make_logs(Logger& logger) {
     while (true) {
         if (spam_on == true) {
             gen_mutex.lock();
@@ -394,7 +394,7 @@ int main() {
         Logger* logger = LoggerBuilder().set_level(Logger::INFO).add_handler(std::move(msg_stream)).make_object();
 
         for (int i = 0; i < 4; ++i) {
-            threads.emplace_back(make_logs, std::ref(*logger), i);
+            threads.emplace_back(make_logs, std::ref(*logger));
         }
 
         while (true) {
@@ -429,7 +429,7 @@ int main() {
             msgsnd(msg_id, &quit_msg, strlen(quit_msg.mtext) + 1, 0);
         }
 
-        //delete logger;
+        delete logger;
         std::cout << "Generator process finished." << std::endl;
         return 0;
     }
@@ -511,7 +511,7 @@ int main() {
                     std::cout << "Invalid IP address." << std::endl;
                     continue;
                 }
-                stat_pkg pkg {statistic, 0, 0, 0};
+                stat_pkg pkg {statistic, 0, 0, 0, {0,0,0,0}};
                 std::copy(ip, ip + 4, pkg.ip);
                 *an_buf = pkg;
                 sem_signal(an_sem_id);
