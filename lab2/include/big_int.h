@@ -15,10 +15,6 @@ class BigInt {
 private:
     std::vector<uint64_t> digits;
     bool isNegative;
-    BigInt abs() const;
-    void remove_leading_zeros();
-    bool is_zero() const;
-    BigInt operator%(const BigInt &other) const;
 
 public:
     BigInt();
@@ -27,6 +23,11 @@ public:
     BigInt(const BigInt &other);
     BigInt(BigInt &&other) noexcept;
     ~BigInt();
+
+    BigInt abs() const;
+    void remove_leading_zeros();
+    bool is_zero() const;
+    BigInt operator%(const BigInt &other) const;
 
     BigInt &operator=(const BigInt &other);
     BigInt &operator=(BigInt &&other) noexcept;

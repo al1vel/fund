@@ -29,9 +29,9 @@ int main() {
     // std::cin >> a;
     // std::cout << a << std::endl;
 
-    BigInt bigint("71238548967123567235612386751823656182356781625348561234678578123457816234567817834578134658134568913456789136495619");
-    BigInt res = bigint.mod_exp(BigInt("25637467237845623785235"), BigInt("65537"));
-    std::cout << res << std::endl;
+    // BigInt bigint("71238548967123567235612386751823656182356781625348561234678578123457816234567817834578134658134568913456789136495619");
+    // BigInt res = bigint.mod_exp(BigInt("25637467237845623785235"), BigInt("65537"));
+    // std::cout << res << std::endl;
     //
     // BigInt bigint1("12345678912");
     // BigInt res1 = bigint1.mod_exp(BigInt("345"), BigInt("1234"));
@@ -41,5 +41,10 @@ int main() {
     // BigInt huesos2("2");
     // BigInt res = huesos / huesos2;
     // std::cout << res << std::endl;
+
+    BigInt m1("16354683682364823532585683298235789235792");
+    BigInt m2("3984698346798346834673487934634963946748628946892466982489674876384969376");
+    BigInt res = m1.karatsuba_multiply(m2);
+    std::cout << res << std::endl;
 }
 //101777445

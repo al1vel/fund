@@ -57,6 +57,7 @@ BigInt::BigInt(const std::string &str) {
             }
         }
     }
+    this->remove_leading_zeros();
 }
 
 BigInt::BigInt(const BigInt &other) {
@@ -421,5 +422,51 @@ BigInt BigInt::mod_exp(const BigInt &exp, const BigInt &mod) const {
     if (exp.digits[0] % 2 == 1) {
         result = (result * *this) % mod;
     }
+    return result;
+}
+
+BigInt BigInt::karatsuba_multiply(const BigInt &other) const {
+    BigInt x = *this;
+    BigInt y = other;
+    std::size_t n = std::max(x.digits.size(), y.digits.size());
+
+    if (n <= 32) {
+        return x * y;
+    }
+
+    std::size_t m = n / 2;
+
+    BigInt x0, x1, y0, y1;
+
+    x0.digits.assign(x.digits.begin(), x.digits.begin() + std::min(m, x.digits.size()));
+    x1.digits.assign(x.digits.begin() + std::min(m, x.digits.size()), x.digits.end());
+    y0.digits.assign(y.digits.begin(), y.digits.begin() + std::min(m, y.digits.size()));
+    y1.digits.assign(y.digits.begin() + std::min(m, y.digits.size()), y.digits.end());
+
+    x0.remove_leading_zeros();
+    x1.remove_leading_zeros();
+    y0.remove_leading_zeros();
+    y1.remove_leading_zeros();
+
+    BigInt z0 = x0.karatsuba_multiply(y0);
+    BigInt z2 = x1.karatsuba_multiply(y1);
+    BigInt z1 = (x0 + x1).karatsuba_multiply(y0 + y1) - z0 - z2;
+
+    BigInt result;
+    result.digits = std::vector<uint64_t>(z2.digits.size() + 2 * m, 0);
+    std::copy(z2.digits.begin(), z2.digits.end(), result.digits.begin() + 2 * m);
+
+    BigInt z1_shift;
+    z1_shift.digits = std::vector<uint64_t>(z1.digits.size() + m, 0);
+    std::copy(z1.digits.begin(), z1.digits.end(), z1_shift.digits.begin() + m);
+
+    result = result + z1_shift + z0;
+    result.isNegative = (x.isNegative != y.isNegative);
+    result.remove_leading_zeros();
+
+    if (result.is_zero()) {
+        result.isNegative = false;
+    }
+
     return result;
 }
