@@ -50,7 +50,7 @@ private:
     unsigned int log_level;
 
     Logger() {
-        log_level = CRITICAL;
+        log_level = INFO;
     }
 
     std::string timestamp() {
@@ -60,6 +60,15 @@ private:
         std::ostringstream oss;
         oss << std::put_time(tm_ptr, "%Y-%m-%d %H:%M:%S");
         return oss.str();
+    }
+
+    void log(unsigned int level, const std::string& label, const std::string& msg) {
+        if (level > log_level) {
+            return;
+        }
+        for (auto&& out : handlers) {
+            (*out) << timestamp() + " --> " << label << ": " << msg << std::endl;
+        }
     }
 
 public:
@@ -75,14 +84,6 @@ public:
         std::cout << "Logger destroyed." << std::endl << "All own handlers closed." << std::endl;
     }
 
-    void log(unsigned int level, const std::string& label, const std::string& msg) {
-        if (level > log_level) {
-            return;
-        }
-        for (auto&& out : handlers) {
-            (*out) << timestamp() + " --> " << label << ": " << msg << std::endl;
-        }
-    }
 
     void critical(const std::string& msg) {
         log(CRITICAL, "CRITICAL", msg);
