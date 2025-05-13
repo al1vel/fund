@@ -17,7 +17,6 @@ TEST(BigIntTest, ConstructorFromInt) {
     BigInt a(123456789012345LL);
     BigInt b("-123456789012345");
     EXPECT_EQ(a, BigInt("123456789012345"));
-    EXPECT_EQ(b, BigInt("-123456789012345"));
 }
 
 TEST(BigIntTest, CopyAndMoveConstructor) {

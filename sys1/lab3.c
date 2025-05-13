@@ -4,7 +4,7 @@
 #include <unistd.h>
 #include <semaphore.h>
 
-//#define OK
+#define OK
 
 #define NUM 5
 pthread_mutex_t forks[NUM];

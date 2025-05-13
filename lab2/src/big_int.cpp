@@ -19,7 +19,6 @@ bool BigInt::is_zero() const {
     return false;
 }
 
-
 BigInt::BigInt() {
     isNegative = false;
 }
@@ -120,7 +119,6 @@ BigInt BigInt::abs() const {
     return temp;
 }
 
-
 bool BigInt::operator==(const BigInt &other) const {
     if (isNegative != other.isNegative) {
         return false;
@@ -211,7 +209,7 @@ void BigInt::remove_leading_zeros() {
 BigInt BigInt::operator+(const BigInt &other) const {
     BigInt result = BigInt();
 
-    if (!isNegative && !other.isNegative) {
+    if (!(isNegative ^ other.isNegative)) {
         std::size_t n = std::max(digits.size(), other.digits.size());
         uint64_t add = 0;
         for (std::size_t i = 0; i < n; ++i) {
@@ -228,29 +226,7 @@ BigInt BigInt::operator+(const BigInt &other) const {
         if (add > 0) {
             result.digits.push_back(add % BASE);
         }
-
-    } else if (isNegative && other.isNegative) {
-        std::size_t n = std::max(digits.size(), other.digits.size());
-        uint64_t add = 0;
-        for (std::size_t i = 0; i < n; ++i) {
-            uint64_t sum = add;
-            if (i < digits.size()) {
-                sum += digits[i];
-            }
-            if (i < other.digits.size()) {
-                sum += other.digits[i];
-            }
-            result.digits.push_back(sum % BASE);
-            add = sum / BASE;
-        }
-        // while (add > 0) {
-        //     result.digits.push_back(add % BASE);
-        //     add = add / BASE;
-        // }
-        if (add > 0) {
-            result.digits.push_back(add % BASE);
-        }
-        result.isNegative = true;
+        result.isNegative = other.isNegative;
 
     } else {
         BigInt absThis = this->abs();
