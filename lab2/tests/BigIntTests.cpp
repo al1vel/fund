@@ -1,12 +1,28 @@
 #include <big_int.h>
 #include <gtest/gtest.h>
 
+class TestBigINT : public ::testing::Test {
+protected:
+    BigInt first = BigInt("123456789012345");
+    BigInt second = BigInt("123456789012346");
+
+    void SetUp() override {
+
+    }
+
+    void TearDown() override {
+
+    }
+};
+
 TEST(BigIntTest, ConstructorFromString) {
     BigInt a("123456789012345");
     std::ostringstream oss;
     oss << a;
     EXPECT_EQ(oss.str(), "123456789012345");
+}
 
+TEST(BigIntTest, ConstructorFromString2) {
     BigInt b("-987654321098765");
     std::ostringstream oss2;
     oss2 << b;
@@ -19,11 +35,15 @@ TEST(BigIntTest, ConstructorFromInt) {
     EXPECT_EQ(a, BigInt("123456789012345"));
 }
 
-TEST(BigIntTest, CopyAndMoveConstructor) {
+TEST(BigIntTest, CopyConstructor) {
     BigInt a("123456789012345");
     BigInt b = a;
     EXPECT_EQ(a, b);
+}
 
+TEST(BigIntTest, MoveConstructor) {
+    BigInt a("123456789012345");
+    BigInt b("123456789012345");
     BigInt c = std::move(a);
     EXPECT_EQ(c, b);
 }
@@ -33,10 +53,15 @@ TEST(BigIntTest, ArithmeticAddition) {
     BigInt b("987654321098765");
     BigInt sum = a + b;
     EXPECT_EQ(sum, BigInt("1111111110111110"));
+}
 
+TEST(BigIntTest, ArithmeticAddition2) {
+    BigInt a("123456789012345");
     BigInt neg("-123456789012345");
     EXPECT_EQ(a + neg, BigInt("0"));
+}
 
+TEST(BigIntTest, ArithmeticAddition3) {
     BigInt f = BigInt("-1438561783426468137496891347810394678013497613748601934768103471834917903479013476173049768134789671398");
     BigInt s = BigInt("-7563465728354562783465783465283476528346523748652346562347563284652834658234652346523465278345784136538453784657823645762374562783456327456783452384567234563274568234726345");
     BigInt res = f + s;
@@ -47,6 +72,11 @@ TEST(BigIntTest, ArithmeticSubtraction) {
     BigInt a("987654321098765");
     BigInt b("123456789012345");
     EXPECT_EQ(a - b, BigInt("864197532086420"));
+}
+
+TEST(BigIntTest, ArithmeticSubtraction2) {
+    BigInt a("987654321098765");
+    BigInt b("123456789012345");
     EXPECT_EQ(b - a, BigInt("-864197532086420"));
 }
 
@@ -83,7 +113,9 @@ TEST(BigIntTest, ArithmeticDivision) {
     BigInt a("12345678900000000000000");
     BigInt b("123456789");
     EXPECT_EQ(a / b, BigInt("100000000000000"));
+}
 
+TEST(BigIntTest, ArithmeticDivision2) {
     BigInt c("999999999999999");
     EXPECT_EQ(c / BigInt("1"), c);
 }
@@ -116,10 +148,8 @@ TEST(BigIntTest, ModExp2) {
 TEST(BigIntTest, ModExp_ExponentZero_ReturnsOne) {
     BigInt base("123456789");
     BigInt exponent("0");
-    BigInt modulus("98765");
-
-    BigInt result = base.mod_exp(exponent, modulus);
-
+    BigInt mod("98765");
+    BigInt result = base.mod_exp(exponent, mod);
     EXPECT_EQ(result, BigInt("1"));
 }
 
@@ -159,15 +189,23 @@ TEST(BigIntTest, KaratsubaMultiply6) {
     EXPECT_EQ(a.karatsuba_multiply(b), a * b);
 }
 
-TEST(BigIntTest, ComparisonOperators) {
-    BigInt a("123456789012345");
-    BigInt b("123456789012346");
-    EXPECT_TRUE(a < b);
-    EXPECT_TRUE(b > a);
-    EXPECT_TRUE(a <= b);
-    EXPECT_TRUE(b >= a);
-    EXPECT_TRUE(a != b);
-    EXPECT_TRUE(a == BigInt("123456789012345"));
+TEST_F(TestBigINT, ComparisonOperators1) {
+    EXPECT_TRUE(first < second);
+}
+TEST_F(TestBigINT, ComparisonOperators2) {
+    EXPECT_TRUE(second > first);
+}
+TEST_F(TestBigINT, ComparisonOperators3) {
+    EXPECT_TRUE(first <= second);
+}
+TEST_F(TestBigINT, ComparisonOperators4) {
+    EXPECT_TRUE(second >= first);
+}
+TEST_F(TestBigINT, ComparisonOperators5) {
+    EXPECT_TRUE(first != second);
+}
+TEST_F(TestBigINT, ComparisonOperators6) {
+    EXPECT_TRUE(first == BigInt("123456789012345"));
 }
 
 TEST(BigIntTest, Comparison) {
@@ -185,25 +223,40 @@ TEST(BigIntTest, IncrementDecrement) {
     EXPECT_EQ(a, BigInt("123456789012345"));
 }
 
-TEST(BigIntTest, CompoundAssignmentOperators) {
+TEST(BigIntTest, PlusRavno) {
     BigInt a("100000000000000");
     BigInt b("23456789012345");
     a += b;
     EXPECT_EQ(a, BigInt("123456789012345"));
+}
 
+TEST(BigIntTest, MinusRavno) {
+    BigInt a("100000000000000");
+    BigInt b("23456789012345");
     a -= b;
-    EXPECT_EQ(a, BigInt("100000000000000"));
+    EXPECT_EQ(a, BigInt("76543210987655"));
+}
 
-    a *= BigInt("10");
-    EXPECT_EQ(a, BigInt("1000000000000000"));
+TEST(BigIntTest, MultRavno) {
+    BigInt a("1345896734896389678934569369");
+    a *= BigInt("236542388236852835685623");
+    EXPECT_EQ(a, BigInt("318361627992574405433967418085173087391967369481887"));
+}
 
-    a /= BigInt("10");
-    EXPECT_EQ(a, BigInt("100000000000000"));
+TEST(BigIntTest, DelRavno) {
+    BigInt a("10234865782346789567389468934863489689346979346789347823423423467");
+    BigInt b("234567890123453847689347");
+    a /= b;
+    EXPECT_EQ(a, BigInt("43632850928403483676399026387917674976013"));
 }
 
 TEST(BigIntTest, IsZero) {
     EXPECT_TRUE(BigInt("0").is_zero());
+}
+TEST(BigIntTest, IsZero2) {
     EXPECT_FALSE(BigInt("100000000000000").is_zero());
+}
+TEST(BigIntTest, IsZero3) {
     EXPECT_TRUE(BigInt().is_zero());
 }
 
