@@ -16,20 +16,6 @@ int nl_pos(const char *str) {
     return -1;
 }
 
-// int validate_path(char *str) {
-//     int pos = 0;
-//     if (str[pos] == '\0') {
-//         return -1;
-//     }
-//     ++pos;
-//     if (str[pos] == '/') {
-//         return -1;
-//     }
-//     ++pos;
-//
-//
-// }
-
 #define SHM_SIZE 4096
 #define SHM_KEY 1234
 
@@ -48,6 +34,7 @@ struct packet {
 };
 
 int main() {
+    sleep(1);
     int shm_id = shmget(SHM_KEY, SHM_SIZE, 0666);
     if (shm_id == -1) {
         perror("shmget");
@@ -63,12 +50,16 @@ int main() {
     char command[256];
     printf("Type full path to get its content.\nType quit to close.\n\n");
     while (1) {
+        printf("> ");
         if (fgets(command, sizeof(command), stdin) != NULL) {
             command[nl_pos(command)] = '\0';
 
             if (strcmp(command, "quit") == 0) {
                 printf("Exiting program...\n");
                 shm_ptr->who_talks = QUIT;
+                while (shm_ptr->who_talks != CLIENT) {
+                    sleep(1);
+                }
                 break;
             }
             printf("Path: %s\n", command);
@@ -76,16 +67,17 @@ int main() {
             snprintf(shm_ptr->text, sizeof(shm_ptr->text), "%s", command);
             shm_ptr->who_talks = SERVER;
             shm_ptr->client_wait = WAIT;
-            printf("<Client>: sent!\n");
+            //printf("<Client>: sent!\n");
 
-            while (shm_ptr->who_talks == SERVER) {
-                while (1) {
-                    sleep(1);
-                    if (shm_ptr->client_wait == GO_GET) {
-                        break;
-                    }
+            while (1) {
+                if (shm_ptr->client_wait == GO_GET) {
+                    printf("- %s\n", shm_ptr->text);
+                    shm_ptr->client_wait = WAIT;
+                } else if (shm_ptr->who_talks == CLIENT) {
+                    break;
+                } else {
+                    usleep(100000);
                 }
-                printf("- %s\n", shm_ptr->text);
             }
 
         } else {
@@ -98,6 +90,7 @@ int main() {
         perror("shmdt");
         exit(EXIT_FAILURE);
     }
+    shmctl(shm_id, IPC_RMID, NULL);
     printf("Client process finished.\n");
     return 0;
 }

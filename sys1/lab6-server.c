@@ -31,25 +31,23 @@ size_t how_many_files(char* path) {
     return num_files;
 }
 
-void write_needed_path(char* path, size_t pos, char* buffer) {
-    DIR *dir;
-    struct dirent *entry = NULL;
+void write_needed_path(char* result, size_t pos, const char* dir_path) {
+    DIR *dir = opendir(dir_path);
+    if (!dir) return;
 
-    dir = opendir(buffer);
-
-    int i = 0;
-    while (i != pos) {
-        entry = readdir(dir);
-        if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0) {
-            --i;
+    struct dirent *entry;
+    size_t index = 0;
+    while ((entry = readdir(dir)) != NULL) {
+        if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0 || entry->d_name[0] == '.') {
+            continue;
         }
-        if (entry->d_name[0] == '.') {
-            --i;
+        if (index == pos) {
+            strncpy(result, entry->d_name, 2048);
+            break;
         }
-        ++i;
+        ++index;
     }
-    entry = readdir(dir);
-    strcpy(path, entry->d_name);
+    closedir(dir);
 }
 
 enum {
@@ -78,27 +76,35 @@ int main() {
         perror("shmat");
         exit(EXIT_FAILURE);
     }
+    memset(shm_ptr, 0, SHM_SIZE);
+    shm_ptr->who_talks = CLIENT;
 
     while (shm_ptr->who_talks != QUIT) {
         while (shm_ptr->who_talks == CLIENT) {
-            printf("Server waits\n");
             sleep(1);
+        }
+        if (shm_ptr->who_talks == QUIT) {
+            continue;
         }
 
         char path[2048];
         strcpy(path, shm_ptr->text);
-        printf("[Server]: got -  <%s>\n", path);
+        //printf("[Server]: got -  <%s>\n", path);
 
         size_t n = how_many_files(path);
+        printf("[Server]: found %lu files.\n", n);
         for (size_t i = 0; i < n; i++) {
             write_needed_path(shm_ptr->text, i, path);
+            //printf("[Server]: sent path: <%s>\n", path);
             shm_ptr->client_wait = GO_GET;
-            while (shm_ptr->client_wait != WAIT) {
-                //sleep(1);
-            }
+            while (shm_ptr->client_wait != WAIT) {}
+            //printf("[Server]: client waits\n");
         }
         shm_ptr->who_talks = CLIENT;
+        //printf("[Server]: client talks!\n");
     }
+
+    shm_ptr->who_talks = CLIENT;
 
     if (shmdt(shm_ptr) == -1) {
         perror("shmdt");
