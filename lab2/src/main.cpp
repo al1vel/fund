@@ -44,6 +44,6 @@ int main() {
 
     BigInt m1("163546836823648235");
     BigInt m2("398469834679");
-    BigInt res = m1.fft_multiply(m2);
+    BigInt res = m1.fft_multiply2(m2);
     std::cout << res << std::endl;
 }

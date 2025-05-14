@@ -9,6 +9,7 @@
 #include <cstdint>
 
 #define BASE 1000000000
+#define SMALL_BASE 10000
 
 std::size_t num_length(uint64_t num);
 
@@ -30,6 +31,9 @@ public:
     bool is_zero() const;
     BigInt operator%(const BigInt &other) const;
     void fft(std::vector<std::complex<long double>>& a, bool invert);
+    std::string to_string() const;
+    std::string small_number_to_string(std::vector<uint64_t>& num);
+    std::vector<uint64_t> small_base_number(std::string& str) const;
 
     BigInt &operator=(const BigInt &other);
     BigInt &operator=(BigInt &&other) noexcept;
@@ -53,6 +57,7 @@ public:
 
     [[nodiscard]] BigInt mod_exp(const BigInt &exp, const BigInt &mod) const;
     [[nodiscard]] BigInt fft_multiply(const BigInt &a);
+    [[nodiscard]] BigInt fft_multiply2(const BigInt &a);
     [[nodiscard]] BigInt karatsuba_multiply(const BigInt &a) const;
     [[nodiscard]] BigInt newton_divide(const BigInt &a) const;
 

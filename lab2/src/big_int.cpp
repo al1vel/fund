@@ -475,15 +475,67 @@ void BigInt::fft(std::vector<std::complex<long double>>& a, bool invert) {
     }
 }
 
-BigInt BigInt::fft_multiply(const BigInt& second) {
-    BigInt res;
-    res.isNegative = isNegative ^ second.isNegative;
+std::string BigInt::to_string() const {
+    std::stringstream ss;
+    ss << *this;
+    return ss.str();
+}
 
-    std::vector<std::complex<long double>> fa(digits.begin(), digits.end());
-    std::vector<std::complex<long double>> fb(second.digits.begin(), second.digits.end());
+std::vector<uint64_t> BigInt::small_base_number(std::string& str) const {
+    std::string temp = str;
+    std::vector<uint64_t> res;
+    if (temp.length() == 0) {
+        res.push_back(0);
+        return res;
+    }
+
+    for (long long i = temp.length(); i > 0; i -= 4) {
+        if (i < 4) {
+            res.push_back(atoi(temp.substr(0, i).c_str()));
+        } else {
+            res.push_back(atoi(temp.substr(i - 4, 4).c_str()));
+        }
+    }
+    return res;
+}
+
+std::string BigInt::small_number_to_string(std::vector<uint64_t> &num) {
+    std::string res;
+    if (num.empty() || (num.back() == 0 && num.size() == 1)) {
+        res += "0";
+    } else {
+        for (long long i = num.size() - 1; i >= 0; i--) {
+            if (num[i] == 0) {
+                res += "0000";
+            } else {
+                if (i != static_cast<long long>(num.size()) - 1) {
+                    std::size_t len = num_length(num[i]);
+                    if (len < 4) {
+                        std::string s(4 - len, '0');
+                        res += s;
+                    }
+                }
+                res += std::to_string(num[i]);
+            }
+        }
+    }
+    return res;
+}
+
+
+BigInt BigInt::fft_multiply2(const BigInt& second) {
+    std::string first_str = this->to_string();
+    std::string second_str = second.to_string();
+
+    std::vector<uint64_t> first_num = small_base_number(first_str);
+    std::vector<uint64_t> second_num = small_base_number(second_str);
+    std::vector<uint64_t> small_res;
+
+    std::vector<std::complex<long double>> fa(first_num.begin(), first_num.end());
+    std::vector<std::complex<long double>> fb(second_num.begin(), second_num.end());
 
     uint size = 1;
-    while (size < std::max(digits.size(), second.digits.size())) {
+    while (size < std::max(first_num.size(), second_num.size())) {
         size <<= 1;
     }
     size <<= 1;
@@ -501,14 +553,18 @@ BigInt BigInt::fft_multiply(const BigInt& second) {
 
     uint64_t carry = 0;
     for (size_t i = 0; i < size; ++i) {
-        uint64_t value = static_cast<uint64_t>(fa[i].real() + 0.5) + carry;
-        res.digits.push_back(value % BASE);
-        carry = value / BASE;
+        int64_t value = static_cast<int64_t>(std::round(fa[i].real())) + carry;
+        small_res.push_back(value % SMALL_BASE);
+        carry = value / SMALL_BASE;
     }
 
-    if (carry > 0)
-        res.digits.push_back(carry);
+    if (carry > 0) {
+        small_res.push_back(carry);
+    }
 
+    std::string small_res_str = small_number_to_string(small_res);
+    BigInt res(small_res_str);
     res.remove_leading_zeros();
+    res.isNegative = isNegative ^ second.isNegative;
     return res;
 }
