@@ -5,6 +5,7 @@
 #include <vector>
 #include <string>
 #include <algorithm>
+#include <complex>
 #include <cstdint>
 
 #define BASE 1000000000
@@ -28,6 +29,7 @@ public:
     void remove_leading_zeros();
     bool is_zero() const;
     BigInt operator%(const BigInt &other) const;
+    void fft(std::vector<std::complex<long double>>& a, bool invert);
 
     BigInt &operator=(const BigInt &other);
     BigInt &operator=(BigInt &&other) noexcept;
@@ -50,7 +52,7 @@ public:
     bool operator>=(const BigInt &other) const;
 
     [[nodiscard]] BigInt mod_exp(const BigInt &exp, const BigInt &mod) const;
-    [[nodiscard]] BigInt fft_multiply(const BigInt &a) const;
+    [[nodiscard]] BigInt fft_multiply(const BigInt &a);
     [[nodiscard]] BigInt karatsuba_multiply(const BigInt &a) const;
     [[nodiscard]] BigInt newton_divide(const BigInt &a) const;
 

@@ -42,9 +42,8 @@ int main() {
     // BigInt res = huesos / huesos2;
     // std::cout << res << std::endl;
 
-    BigInt m1("16354683682364823532585683298235789235792");
-    BigInt m2("3984698346798346834673487934634963946748628946892466982489674876384969376");
-    BigInt res = m1.karatsuba_multiply(m2);
+    BigInt m1("163546836823648235");
+    BigInt m2("398469834679");
+    BigInt res = m1.fft_multiply(m2);
     std::cout << res << std::endl;
 }
-//101777445

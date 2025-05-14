@@ -1,5 +1,7 @@
 #include "big_int.h"
 
+#include <complex>
+
 std::size_t num_length(uint64_t num) {
     std::size_t length = 0;
     while (num) {
@@ -445,4 +447,67 @@ BigInt BigInt::karatsuba_multiply(const BigInt &other) const {
     result.remove_leading_zeros();
 
     return result;
+}
+
+void BigInt::fft(std::vector<std::complex<long double>>& a, bool invert) {
+    auto size = a.size();
+    if (size == 1)  return;
+
+    std::vector<std::complex<long double>> a0(size / 2);
+    std::vector<std::complex<long double>> a1(size / 2);
+    for (unsigned i = 0, j = 0; i < size; i += 2, j++) {
+        a0[j] = a[i];
+        a1[j] = a[i + 1];
+    }
+
+    fft(a0, invert);
+    fft(a1, invert);
+
+    long double ang = 2 * ((long double)(M_PI)) / size * (invert ? -1 : 1);
+    std::complex<long double> w(1.0);
+    std::complex<long double> wn(cosl(ang), sinl(ang));
+    for (unsigned int i = 0; i < size / 2; ++i) {
+        a[i] = a0[i] + w * a1[i];
+        a[i + size / 2] = a0[i] - w * a1[i];
+        if (invert)
+            a[i] /= 2, a[i + size / 2] /= 2;
+        w *= wn;
+    }
+}
+
+BigInt BigInt::fft_multiply(const BigInt& second) {
+    BigInt res;
+    res.isNegative = isNegative ^ second.isNegative;
+
+    std::vector<std::complex<long double>> fa(digits.begin(), digits.end());
+    std::vector<std::complex<long double>> fb(second.digits.begin(), second.digits.end());
+
+    uint size = 1;
+    while (size < std::max(digits.size(), second.digits.size())) {
+        size <<= 1;
+    }
+    size <<= 1;
+    fa.resize(size);
+    fb.resize(size);
+
+    fft(fa, false);
+    fft(fb, false);
+
+    for (uint i = 0; i < size; ++i)
+        fa[i] *= fb[i];
+
+    fft(fa, true);
+
+    uint64_t carry = 0;
+    for (size_t i = 0; i < size; ++i) {
+        uint64_t value = static_cast<uint64_t>(fa[i].real() + 0.5) + carry;
+        res.digits.push_back(value % BASE);
+        carry = value / BASE;
+    }
+
+    if (carry > 0)
+        res.digits.push_back(carry);
+
+    res.remove_leading_zeros();
+    return res;
 }
