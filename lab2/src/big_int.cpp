@@ -493,8 +493,9 @@ BigInt BigInt::fft_multiply(const BigInt& second) {
     fft(fa, false);
     fft(fb, false);
 
-    for (uint i = 0; i < size; ++i)
+    for (uint i = 0; i < size; ++i) {
         fa[i] *= fb[i];
+    }
 
     fft(fa, true);
 
