@@ -469,8 +469,10 @@ void BigInt::fft(std::vector<std::complex<long double>>& a, bool invert) {
     for (unsigned int i = 0; i < size / 2; ++i) {
         a[i] = a0[i] + w * a1[i];
         a[i + size / 2] = a0[i] - w * a1[i];
-        if (invert)
-            a[i] /= 2, a[i + size / 2] /= 2;
+        if (invert) {
+            a[i] /= 2;
+            a[i + size / 2] /= 2;
+        }
         w *= wn;
     }
 }
