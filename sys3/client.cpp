@@ -10,6 +10,17 @@
 #include <csignal>
 #include <atomic>
 #include <cstring>
+#include <sys/wait.h>
+#include <sys/stat.h>
+
+long get_file_size(const char* filename) {
+    struct stat st{};
+    if (stat(filename, &st) != 0) {
+        perror("stat failed");
+        return -1;
+    }
+    return st.st_size;
+}
 
 ssize_t send_bytes(int server_socket, const void *buff, size_t size) {
     ssize_t sent_bytes = send(server_socket, &size, sizeof(size), 0);
@@ -74,13 +85,45 @@ int main() {
         std::getline(std::cin, command);
 
         if (command == "exit") {
+            send_string(client_socket, "exit");
             break;
         }
         if (command == "play") {
             std::cout << "Playing..." << std::endl;
 
         } else if (command == "compile") {
-            std::cout << "Compiling..." << std::endl;
+            std::cout << "Enter path to .cpp file: ";
+            std::string file_path;
+            FILE* file = nullptr;
+
+            while (true) {
+                std::cin >> file_path;
+                file = fopen(file_path.c_str(), "rb");
+                if (file == nullptr) {
+                    std::cout << "Unable to open file <" << file_path << ">.\nTry again: " << std::endl;
+                } else {
+                    break;
+                }
+            }
+
+            send_string(client_socket, "compile");
+            size_t file_size = get_file_size(file_path.c_str());
+            if (file_size == -1) {
+                throw std::runtime_error("Unable to get file size.");
+            }
+            if (file_size % 1024 != 0) {
+                file_size = file_size / 1024 + 1;
+            } else {
+                file_size = file_size / 1024;
+            }
+            send_string(client_socket, std::to_string(file_size));
+
+            char buffer[1024];
+            size_t bytes_read;
+            while ((bytes_read = fread(buffer, 1, sizeof(buffer), file)) > 0) {
+                send_bytes(client_socket, buffer, bytes_read);
+            }
+            fclose(file);
         }
     }
 

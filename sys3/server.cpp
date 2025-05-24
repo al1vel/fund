@@ -7,7 +7,9 @@
 #include <vector>
 #include <thread>
 #include <csignal>
+#include <fstream>
 #include "Process_Compiler.h"
+#include <sys/sem.h>
 
 
 class Server {
@@ -68,7 +70,6 @@ public:
         if (rcv_bytes  == -1) {
             throw std::runtime_error("Receive 1 failed.");
         }
-        std::cout << "Rec len: " << len << std::endl;
 
         std::vector<char> buf(len);
         rcv_bytes = recv(client_socket, buf.data(), len, 0);
@@ -119,6 +120,34 @@ public:
 void process_client(Server& server, std::pair<int, sockaddr_in> client) {
     std::cout << "Client " << client.second.sin_addr.s_addr << " connected to the server." << std::endl;
 
+    while (true) {
+        std::string command = server.receive_string(client.first);
+        std::cout << "Command: " << command << std::endl;
+
+        std::string file_name = std::to_string(client.second.sin_addr.s_addr) + "_in.cpp";
+
+        if (command == "compile") {
+            std::string file_size = server.receive_string(client.first);
+            char buffer[1024];
+            FILE* file_cpp = fopen(file_name.c_str(), "wb");
+            if (file_cpp == nullptr) {
+                throw std::runtime_error("Temp file could not be opened.");
+            }
+            int sz = atoi(file_size.c_str());
+            for (int i = 0; i < sz; ++i) {
+                std::vector<char> buf = server.receive_bytes(client.first);
+                std::copy(buf.begin(), buf.end(), buffer);
+                fwrite(buffer, sizeof(char), buf.size(), file_cpp);
+            }
+            fclose(file_cpp);
+            std::cout << "Got file!" << std::endl;
+
+        } else if (command == "play") {
+
+        } else if (command == "exit") {
+            break;
+        }
+    }
     close(client.first);
     std::cout << "Client " << client.second.sin_addr.s_addr << " disconnected." << std::endl;
 }
@@ -136,10 +165,30 @@ void commandListener(Server &server) {
     }
 }
 
+union semun {
+    int val;
+    struct semid_ds *buf;
+    unsigned short *array;
+};
+
+void init_semaphores(int semid) {
+    union semun arg{};
+    unsigned short values[2] = {0, 1};
+    arg.array = values;
+    if (semctl(semid, 0, SETALL, arg) == -1) {
+        perror("semctl SETALL");
+        exit(EXIT_FAILURE);
+    }
+}
+
 int main() {
     Server server(5000, 10);
     server.bind();
     server.listen();
+
+    std::ofstream("sem.key").put('\n');
+    key_t sem_key = ftok("sem.key", 1);
+    int sem_id = semget(sem_key, 2, 0666 | IPC_CREAT);
 
     ProcessCompiler compiler("compiler");
     compiler.start();
@@ -176,6 +225,9 @@ int main() {
     if (!compiler.wait()) {
         std::cerr << "Compiler process didn't finish properly." << std::endl;
     }
+
+    semctl(sem_id, 0, IPC_RMID);
+    remove("sem.key");
 
     std::cout << "Server threads finished successfully.\nFinishing with exit code 0." << std::endl;
     return 0;
