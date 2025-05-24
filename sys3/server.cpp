@@ -6,9 +6,8 @@
 #include <unistd.h>
 #include <vector>
 #include <thread>
-#include <map>
 #include <csignal>
-#include <atomic>
+#include "Process_Compiler.h"
 
 
 class Server {
@@ -44,7 +43,7 @@ public:
 
     std::pair<int, sockaddr_in> accept() {
         sockaddr_in client_address {};
-        socklen_t addr_len;
+        socklen_t addr_len = sizeof(client_address);
         int client_socket;
         if((client_socket = ::accept(server_socket, (struct sockaddr*)&client_address, &addr_len)) == -1){
             throw std::runtime_error("Accept failed.");
@@ -52,7 +51,7 @@ public:
         return std::make_pair(client_socket, client_address);
     }
 
-    static ssize_t send_bytes(int client_socket, const void *buff, size_t size) {
+    ssize_t send_bytes(int client_socket, const void *buff, size_t size) {
         ssize_t sent_bytes = send(client_socket, &size, sizeof(size), 0);
         if (sent_bytes == -1) {
             throw std::runtime_error("Send 1 failed.");
@@ -63,12 +62,13 @@ public:
         return sent_bytes;
     }
 
-    static std::vector<char> receive_bytes(int client_socket){
+    std::vector<char> receive_bytes(int client_socket){
         size_t len = 0;
         ssize_t rcv_bytes = recv(client_socket, &len, sizeof(len), 0);
         if (rcv_bytes  == -1) {
             throw std::runtime_error("Receive 1 failed.");
         }
+        std::cout << "Rec len: " << len << std::endl;
 
         std::vector<char> buf(len);
         rcv_bytes = recv(client_socket, buf.data(), len, 0);
@@ -76,6 +76,16 @@ public:
             throw std::runtime_error("Receive 2 failed.");
         }
         return buf;
+    }
+
+    ssize_t send_string(int client_socket, const std::string& str) {
+        return send_bytes(client_socket, str.c_str(), str.length());
+    }
+
+    std::string receive_string(int client_socket) {
+        std::vector<char> ret = receive_bytes(client_socket);
+        std::string answer(ret.begin(), ret.end());
+        return answer;
     }
 
     void stop(){
@@ -101,13 +111,16 @@ public:
         return false;
     }
 
-    void shutdown() {
+    void shutdown() const {
         ::shutdown(server_socket, SHUT_RDWR);
     }
 };
 
 void process_client(Server& server, std::pair<int, sockaddr_in> client) {
+    std::cout << "Client " << client.second.sin_addr.s_addr << " connected to the server." << std::endl;
 
+    close(client.first);
+    std::cout << "Client " << client.second.sin_addr.s_addr << " disconnected." << std::endl;
 }
 
 void commandListener(Server &server) {
@@ -128,20 +141,25 @@ int main() {
     server.bind();
     server.listen();
 
+    ProcessCompiler compiler("compiler");
+    compiler.start();
+
     std::thread cmdThread(commandListener, std::ref(server));
     std::vector<std::thread> threads;
 
-    while (true) {
+    while (server.socket_available()) {
         try {
-            if (!server.socket_available()) {
-                break;
-            }
             auto clt = server.accept();
             if (clt.first > 0) {
                 threads.emplace_back(process_client, std::ref(server), clt);
             }
         } catch (const std::exception& e) {
-            std::cerr << "Error on accept: " << e.what() << std::endl;
+            if (server.socket_available()) {
+                std::cerr << "Error on accept: " << e.what() << std::endl;
+            } else {
+                std::cout << "Server socket closed, stopping accept loop" << std::endl;
+                break;
+            }
         }
     }
 
@@ -153,6 +171,10 @@ int main() {
 
     if (cmdThread.joinable()) {
         cmdThread.join();
+    }
+
+    if (!compiler.wait()) {
+        std::cerr << "Compiler process didn't finish properly." << std::endl;
     }
 
     std::cout << "Server threads finished successfully.\nFinishing with exit code 0." << std::endl;

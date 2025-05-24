@@ -1,68 +1,89 @@
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
-#include <unistd.h>
+#include <iostream>
+#include <string>
+#include <exception>
 #include <sys/socket.h>
 #include <arpa/inet.h>
+#include <unistd.h>
+#include <vector>
+#include <thread>
+#include <map>
+#include <csignal>
+#include <atomic>
+#include <cstring>
 
-int main(int argc, char *argv[])
-{
-    int err = 0;
-    int socketDescr = socket(AF_INET, SOCK_STREAM, 0);
-    in_addr_t server_ip;
-    struct sockaddr_in serverAddr;
-    serverAddr.sin_family = AF_INET;
+ssize_t send_bytes(int server_socket, const void *buff, size_t size) {
+    ssize_t sent_bytes = send(server_socket, &size, sizeof(size), 0);
+    if (sent_bytes == -1) {
+        throw std::runtime_error("Send 1 failed.");
+    }
+    if ((sent_bytes = send(server_socket, buff, size, 0)) == -1) {
+        throw std::runtime_error("Send 2 failed.");
+    }
+    return sent_bytes;
+}
 
-    err = inet_pton(AF_INET, "10.10.69.6", &server_ip);
-    if (!err)
-    {
-        return -1;
+std::vector<char> receive_bytes(int server_socket){
+    size_t len = 0;
+    ssize_t rcv_bytes = recv(server_socket, &len, sizeof(len), 0);
+    if (rcv_bytes  == -1) {
+        throw std::runtime_error("Receive 1 failed.");
+    }
+    std::cout << "Rec len: " << len << std::endl;
+
+    std::vector<char> buf(len);
+    rcv_bytes = recv(server_socket, buf.data(), len, 0);
+    if (rcv_bytes == -1){
+        throw std::runtime_error("Receive 2 failed.");
+    }
+    return buf;
+}
+
+ssize_t send_string(int client_socket, const std::string& str) {
+    return send_bytes(client_socket, str.c_str(), str.length());
+}
+
+std::string receive_string(int client_socket) {
+    std::vector<char> ret = receive_bytes(client_socket);
+    std::string answer(ret.begin(), ret.end());
+    return answer;
+}
+
+int main() {
+    int client_socket = socket(AF_INET, SOCK_STREAM, 0);
+    if (client_socket < 0) {
+        throw std::runtime_error("Socket open failed.");
     }
 
-    serverAddr.sin_addr.s_addr = server_ip;
-    serverAddr.sin_port = htons(5000);
+    sockaddr_in serv_addr{};
+    serv_addr.sin_family = AF_INET;
+    serv_addr.sin_port = htons(5000);
 
-    err = connect(socketDescr, (struct sockaddr *)&serverAddr, sizeof(serverAddr));
-
-    if (err == -1)
-    {
-        return -1;
+    if (inet_pton(AF_INET, "127.0.0.1", &serv_addr.sin_addr) <= 0) {
+        std::cerr << "Invalid address\n";
+        return 1;
     }
 
-    const char msg[] = "Hello world";
-    int len = strlen(msg);
-    err = send(socketDescr, &len, sizeof(int), 0); // Отправляем размер
-
-    if (err == -1)
-    {
-        return -1;
+    if (connect(client_socket, (struct sockaddr*)&serv_addr, sizeof(serv_addr)) < 0) {
+        perror("connection failed");
+        return 1;
     }
 
-    err = send(socketDescr, msg, len, 0);
-    if (err == -1)
-    {
-        return -1;
-    }
-    err = recv(socketDescr, &len, sizeof(len), 0);
-    if (err == -1)
-    {
-        return -1;
-    }
-    char *buff = (char *)malloc(len);
-    if (!buff)
-    {
-        return -1;
+    std::cout << "Connected to server.\nAvailable commands:\n  1. play\n  2. compile\n  3. exit\n" << std::endl;
+    std::string command;
+    while (true) {
+        std::getline(std::cin, command);
+
+        if (command == "exit") {
+            break;
+        }
+        if (command == "play") {
+            std::cout << "Playing..." << std::endl;
+
+        } else if (command == "compile") {
+            std::cout << "Compiling..." << std::endl;
+        }
     }
 
-    if (!buff)
-    {
-        return -1;
-    }
-
-    err = recv(socketDescr, buff, len, 0);
-
-    printf("%s\n", buff);
-    free(buff);
-    close(socketDescr);
+    close(client_socket);
     return 0;
 }
