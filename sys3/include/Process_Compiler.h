@@ -17,6 +17,7 @@ public:
     bool wait() const;
     pid_t getPid() const;
     std::string get_name() const;
+    void stop() const;
 };
 
 #endif //PROCESS_H

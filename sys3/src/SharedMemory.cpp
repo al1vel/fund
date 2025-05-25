@@ -2,17 +2,21 @@
 
 #include <cstring>
 
-SharedMemory::SharedMemory(int id, size_t size) {
+SharedMemory::SharedMemory(int id, size_t size, bool create) {
     this->sz = size;
     path = "memory_" + std::to_string(id) + ".key";
-    std::ofstream(path.c_str()).put('\n');
+
+    if (create) {
+        std::ofstream(path.c_str()).put('\n');
+    }
 
     key_t key = ftok(path.c_str(), id);
     if (key == -1) {
         throw std::runtime_error("Error creating shared memory key");
     }
 
-    shm_id = shmget(key, sz, 0666 | IPC_CREAT);
+    int shm_flags = 0666 | (create ? IPC_CREAT : 0);
+    shm_id = shmget(key, sz, shm_flags);
     if (shm_id == -1) {
         throw std::runtime_error("Error getting shared memory");
     }
@@ -24,16 +28,16 @@ SharedMemory::SharedMemory(int id, size_t size) {
 }
 
 SharedMemory::~SharedMemory() {
-    this->detach();
+    this->detach(false);
 }
 
-void SharedMemory::detach() const {
+void SharedMemory::detach(bool remove = false) const {
     if (data != nullptr) {
         shmdt(data);
     }
-    if (shm_id != -1) {
+    if (remove && shm_id != -1) {
         shmctl(shm_id, IPC_RMID, nullptr);
-        remove(path.c_str());
+        std::remove(path.c_str());
     }
 }
 

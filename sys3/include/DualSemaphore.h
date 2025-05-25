@@ -14,13 +14,13 @@ private:
     int sem_id = -1;
 
 public:
-    DualSemaphore(int id, unsigned short first_val, unsigned short second_val);
+    DualSemaphore(int id, unsigned short first_val, unsigned short second_val, bool create);
 
     ~DualSemaphore();
 
-    void detach() const;
+    void detach(bool remove) const;
 
-    void wait_for(int expect0, int expect1, int max_retries = 100, int delay_ms = 100) const;
+    void wait_for(int expect0, int expect1, int delay_ms = 100) const;
 
     void up(int index) const;
 

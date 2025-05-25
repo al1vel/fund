@@ -119,7 +119,7 @@ public:
     }
 };
 
-void process_client(Server& server, std::pair<int, sockaddr_in> client) {
+void process_client(Server& server, std::pair<int, sockaddr_in> client, SharedMemory& shm, DualSemaphore& sem) {
     std::cout << "Client " << client.second.sin_addr.s_addr << " connected to the server." << std::endl;
 
     while (true) {
@@ -143,6 +143,16 @@ void process_client(Server& server, std::pair<int, sockaddr_in> client) {
             }
             fclose(file_cpp);
             std::cout << "Got file!" << std::endl;
+
+            sem.wait_for(0, 1);
+            sem.down(1);
+            shm.write(file_name.c_str());
+            sem.up(0);
+
+            sem.wait_for(1, 1);
+            std::string ret = shm.read();
+            std::cout << ret << std::endl;
+            sem.down(0);
 
         } else if (command == "play") {
 
@@ -172,6 +182,9 @@ int main() {
     server.bind();
     server.listen();
 
+    DualSemaphore compile_semaphore(1, 0, 1, true);
+    SharedMemory compile_shm(1, 256, true);
+
     ProcessCompiler compiler("compiler");
     compiler.start();
 
@@ -182,7 +195,7 @@ int main() {
         try {
             auto clt = server.accept();
             if (clt.first > 0) {
-                threads.emplace_back(process_client, std::ref(server), clt);
+                threads.emplace_back(process_client, std::ref(server), clt, std::ref(compile_shm), std::ref(compile_semaphore));
             }
         } catch (const std::exception& e) {
             if (server.socket_available()) {
@@ -203,10 +216,13 @@ int main() {
     if (cmdThread.joinable()) {
         cmdThread.join();
     }
-
+    compiler.stop();
     if (!compiler.wait()) {
         std::cerr << "Compiler process didn't finish properly." << std::endl;
     }
+
+    compile_shm.detach(true);
+    compile_semaphore.detach(true);
 
     std::cout << "Server threads finished successfully.\nFinishing with exit code 0." << std::endl;
     return 0;

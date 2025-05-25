@@ -1,7 +1,10 @@
 #include "Process_Compiler.h"
+
+#include <DualSemaphore.h>
 #include <unistd.h>
 #include <sys/wait.h>
 #include <iostream>
+#include <SharedMemory.h>
 #include <utility>
 
 ProcessCompiler::ProcessCompiler(std::string name) : name(std::move(name)) {}
@@ -16,7 +19,16 @@ void ProcessCompiler::start() {
 
     if (pid == 0) {
         std::cout << "Process " << name << " started" << std::endl;
-        _exit(0);
+        SharedMemory shm(1, 256, false);
+        DualSemaphore sem(1, 0, 0, false);
+
+        while (true) {
+            sem.wait_for(1, 0);
+            std::string msg = shm.read();
+            std::cout << "Compiler got: " << msg << std::endl;
+            shm.write("Huya sebe");
+            sem.up(1);
+        }
     }
 }
 
@@ -34,4 +46,13 @@ bool ProcessCompiler::wait() const {
 
 pid_t ProcessCompiler::getPid() const {
     return pid;
+}
+
+void ProcessCompiler::stop() const {
+    if (pid > 0) {
+        if (kill(pid, SIGTERM) == -1) {
+            perror("kill");
+        }
+    }
+    std::cout << "Process " << name << " stopped." << std::endl;
 }

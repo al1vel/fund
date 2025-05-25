@@ -14,11 +14,11 @@ private:
     char *data;
 
 public:
-    SharedMemory(int id, size_t size);
+    SharedMemory(int id, size_t size, bool create);
 
     ~SharedMemory();
 
-    void detach() const;
+    void detach(bool remove) const;
 
     void write(const std::string& str) const;
 
