@@ -39,7 +39,6 @@ std::vector<char> receive_bytes(int server_socket){
     if (rcv_bytes  == -1) {
         throw std::runtime_error("Receive 1 failed.");
     }
-    std::cout << "Rec len: " << len << std::endl;
 
     std::vector<char> buf(len);
     rcv_bytes = recv(server_socket, buf.data(), len, 0);
@@ -82,6 +81,7 @@ int main() {
     std::cout << "Connected to server.\nAvailable commands:\n  1. play\n  2. compile\n  3. exit\n" << std::endl;
     std::string command;
     while (true) {
+        std::cout << "> ";
         std::getline(std::cin, command);
 
         if (command == "exit") {
@@ -124,6 +124,31 @@ int main() {
                 send_bytes(client_socket, buffer, bytes_read);
             }
             fclose(file);
+
+            std::string compiled_file_path = file_path.substr(0, file_path.find_last_of('/')) +
+                file_path.substr(file_path.find_last_of('/'), file_path.find('.') - file_path.find_last_of('/')) + "_compiled";
+
+            FILE* compiled = fopen(compiled_file_path.c_str(), "wb");
+            if (compiled == nullptr) {
+                throw std::runtime_error("Unable to open file <compiled>.");
+            }
+
+            std::string size = receive_string(client_socket);
+            if (size == "failed") {
+                std::cout << "Compilation failed." << std::endl;
+
+            } else {
+                int sz = atoi(size.c_str());
+                for (int i = 0; i < sz; ++i) {
+                    std::vector<char> buf = receive_bytes(client_socket);
+                    std::copy(buf.begin(), buf.end(), buffer);
+                    fwrite(buffer, sizeof(char), buf.size(), compiled);
+                }
+                fclose(compiled);
+                std::string cmd = "chmod +x " + compiled_file_path;
+                system(cmd.c_str());
+                std::cout << "Got compiled file.\nSaved to: " << compiled_file_path << std::endl;
+            }
         }
     }
 

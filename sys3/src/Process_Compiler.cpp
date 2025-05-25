@@ -26,7 +26,16 @@ void ProcessCompiler::start() {
             sem.wait_for(1, 0);
             std::string msg = shm.read();
             std::cout << "Compiler got: " << msg << std::endl;
-            shm.write("Huya sebe");
+
+            std::string command = "g++ " + msg + " -o " + msg.substr(0, msg.find('.'));
+            //std::cout << "<" << command << ">" << std::endl;
+
+            int result = system(command.c_str());
+            if (result == 0) {
+                shm.write(msg.substr(0, msg.find('.')));
+            } else {
+                shm.write("fail");
+            }
             sem.up(1);
         }
     }

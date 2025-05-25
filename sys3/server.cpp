@@ -12,7 +12,16 @@
 #include <sys/sem.h>
 #include "SharedMemory.h"
 #include "DualSemaphore.h"
+#include <sys/stat.h>
 
+long get_file_size(const char* filename) {
+    struct stat st{};
+    if (stat(filename, &st) != 0) {
+        perror("stat failed");
+        return -1;
+    }
+    return st.st_size;
+}
 
 class Server {
 private:
@@ -151,7 +160,34 @@ void process_client(Server& server, std::pair<int, sockaddr_in> client, SharedMe
 
             sem.wait_for(1, 1);
             std::string ret = shm.read();
-            std::cout << ret << std::endl;
+            //std::cout << ret << std::endl;
+            if (ret == "fail") {
+                std::cout << "Compilation failed!" << std::endl;
+                server.send_string(client.first, "failed");
+            } else {
+                std::cout << "Compilation successful!\nOut file: " << ret << std::endl;
+                long out_size = get_file_size(ret.c_str());
+                if (out_size == -1) {
+                    throw std::runtime_error("Output file size could not be read.");
+                }
+                if (out_size % 1024 != 0) {
+                    out_size = out_size / 1024 + 1;
+                } else {
+                    out_size = out_size / 1024;
+                }
+                FILE* out = fopen(ret.c_str(), "rb");
+                if (out == nullptr) {
+                    throw std::runtime_error("Temp out file could not be opened.");
+                }
+
+                server.send_string(client.first, std::to_string(out_size));
+                size_t bytes_read;
+                while ((bytes_read = fread(buffer, 1, sizeof(buffer), out)) > 0) {
+                    server.send_bytes(client.first, buffer, bytes_read);
+                }
+                fclose(out);
+                std::cout << "File sent." << std::endl;
+            }
             sem.down(0);
 
         } else if (command == "play") {
@@ -217,9 +253,6 @@ int main() {
         cmdThread.join();
     }
     compiler.stop();
-    if (!compiler.wait()) {
-        std::cerr << "Compiler process didn't finish properly." << std::endl;
-    }
 
     compile_shm.detach(true);
     compile_semaphore.detach(true);
