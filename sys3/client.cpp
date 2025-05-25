@@ -97,7 +97,7 @@ int main() {
             FILE* file = nullptr;
 
             while (true) {
-                std::cin >> file_path;
+                std::getline(std::cin, file_path);
                 file = fopen(file_path.c_str(), "rb");
                 if (file == nullptr) {
                     std::cout << "Unable to open file <" << file_path << ">.\nTry again: " << std::endl;
@@ -108,6 +108,9 @@ int main() {
 
             send_string(client_socket, "compile");
             size_t file_size = get_file_size(file_path.c_str());
+
+            size_t total_sent = 0, total_bytes = file_size;
+
             if (file_size == -1) {
                 throw std::runtime_error("Unable to get file size.");
             }
@@ -122,28 +125,36 @@ int main() {
             size_t bytes_read;
             while ((bytes_read = fread(buffer, 1, sizeof(buffer), file)) > 0) {
                 send_bytes(client_socket, buffer, bytes_read);
+                total_sent += bytes_read;
+                int percent = static_cast<int>((100.0 * total_sent) / total_bytes);
+                std::cout << "\rSending: [" << std::string(percent / 2, '#') << std::string(50 - percent / 2, ' ') << "] " << percent << "%" << std::flush;
             }
+            std::cout << std::endl;
             fclose(file);
-
-            std::string compiled_file_path = file_path.substr(0, file_path.find_last_of('/')) +
-                file_path.substr(file_path.find_last_of('/'), file_path.find('.') - file_path.find_last_of('/')) + "_compiled";
-
-            FILE* compiled = fopen(compiled_file_path.c_str(), "wb");
-            if (compiled == nullptr) {
-                throw std::runtime_error("Unable to open file <compiled>.");
-            }
 
             std::string size = receive_string(client_socket);
             if (size == "failed") {
                 std::cout << "Compilation failed." << std::endl;
 
             } else {
+                std::string compiled_file_path = file_path.substr(0, file_path.find_last_of('/')) +
+                file_path.substr(file_path.find_last_of('/'), file_path.find('.') - file_path.find_last_of('/')) + "_compiled";
+
+                FILE* compiled = fopen(compiled_file_path.c_str(), "wb");
+                if (compiled == nullptr) {
+                    throw std::runtime_error("Unable to open file <compiled>.");
+                }
+
                 int sz = atoi(size.c_str());
                 for (int i = 0; i < sz; ++i) {
                     std::vector<char> buf = receive_bytes(client_socket);
                     std::copy(buf.begin(), buf.end(), buffer);
                     fwrite(buffer, sizeof(char), buf.size(), compiled);
+
+                    int percent = static_cast<int>((100.0 * (i + 1)) / sz);
+                    std::cout << "\rReceiving: [" << std::string(percent / 2, '#') << std::string(50 - percent / 2, ' ') << "] " << percent << "%" << std::flush;
                 }
+                std::cout << std::endl;
                 fclose(compiled);
                 std::string cmd = "chmod +x " + compiled_file_path;
                 system(cmd.c_str());

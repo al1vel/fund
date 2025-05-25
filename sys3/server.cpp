@@ -164,6 +164,7 @@ void process_client(Server& server, std::pair<int, sockaddr_in> client, SharedMe
             if (ret == "fail") {
                 std::cout << "Compilation failed!" << std::endl;
                 server.send_string(client.first, "failed");
+                std::remove(file_name.c_str());
             } else {
                 std::cout << "Compilation successful!\nOut file: " << ret << std::endl;
                 long out_size = get_file_size(ret.c_str());
@@ -186,6 +187,8 @@ void process_client(Server& server, std::pair<int, sockaddr_in> client, SharedMe
                     server.send_bytes(client.first, buffer, bytes_read);
                 }
                 fclose(out);
+                std::remove(ret.c_str());
+                std::remove(file_name.c_str());
                 std::cout << "File sent." << std::endl;
             }
             sem.down(0);
