@@ -89,7 +89,53 @@ int main() {
             break;
         }
         if (command == "play") {
-            std::cout << "Playing..." << std::endl;
+            send_string(client_socket, "play");
+            std::string ret = receive_string(client_socket);
+            if (ret != "ready") {
+                std::cout << "Something bad happened on server. Try later..." << std::endl;
+                break;
+            }
+
+            std::cout << "There are 21 stones. Your turn: ";
+            std::string answer;
+            int turn = 0;
+
+            while (true) {
+                std::getline(std::cin, answer);
+                turn = std::stoi(answer);
+                if (turn <= 3 && turn >= 1) {
+                    break;
+                }
+                std::cout << "Enter a number between 1 and 3: ";
+            }
+            send_string(client_socket, answer);
+
+            while (true) {
+                answer = receive_string(client_socket);
+                if (answer == "0|0") {
+                    std::cout << "You won!" << std::endl;
+                    break;
+                }
+                int comp_took = std::stoi(answer.substr(0, answer.find('|')));
+                int stones_left = std::stoi(answer.substr(answer.find('|')));
+
+                if (stones_left == 0) {
+                    std::cout << "Computer took " << comp_took << " stones.\nYou lost!" << std::endl;
+                    break;
+                }
+
+                std::cout << "Computer took " << comp_took << " stones." << std::endl;
+                std::cout << "There are " << stones_left << " stones. Your turn: ";
+                while (true) {
+                    std::getline(std::cin, answer);
+                    turn = std::stoi(answer);
+                    if (turn < 3 && turn > 1) {
+                        break;
+                    }
+                    std::cout << "Enter a number between 1 and 3: ";
+                }
+                send_string(client_socket, answer);
+            }
 
         } else if (command == "compile") {
             std::cout << "Enter path to .cpp file: ";

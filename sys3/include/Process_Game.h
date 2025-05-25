@@ -1,16 +1,15 @@
-#ifndef PROCESS_H
-#define PROCESS_H
-
+#ifndef PROCESS_GAME_H
+#define PROCESS_GAME_H
 #include <iostream>
 
-class ProcessCompiler {
+class ProcessGame {
 private:
     pid_t pid = -1;
     std::string name;
 
 public:
-    explicit ProcessCompiler(std::string name);
-    ~ProcessCompiler();
+    explicit ProcessGame(std::string name);
+    ~ProcessGame();
 
     void start();
     bool wait() const;
@@ -19,4 +18,4 @@ public:
     void stop() const;
 };
 
-#endif //PROCESS_H
+#endif //PROCESS_GAME_H

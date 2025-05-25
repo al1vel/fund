@@ -13,6 +13,8 @@
 #include "SharedMemory.h"
 #include "DualSemaphore.h"
 #include <sys/stat.h>
+#include "MsgQueue.h"
+#include "Process_Game.h"
 
 long get_file_size(const char* filename) {
     struct stat st{};
@@ -128,7 +130,7 @@ public:
     }
 };
 
-void process_client(Server& server, std::pair<int, sockaddr_in> client, SharedMemory& shm, DualSemaphore& sem) {
+void process_client(Server& server, std::pair<int, sockaddr_in> client, SharedMemory& shm, DualSemaphore& sem, MsgQueue& queue_in, MsgQueue& queue_out) {
     std::cout << "Client " << client.second.sin_addr.s_addr << " connected to the server." << std::endl;
 
     while (true) {
@@ -194,6 +196,38 @@ void process_client(Server& server, std::pair<int, sockaddr_in> client, SharedMe
             sem.down(0);
 
         } else if (command == "play") {
+            long client_id = client.second.sin_addr.s_addr;
+            queue_in.send_message(client_id, "S");
+            std::pair<long, std::string> ret = queue_out.receive_message(client_id);
+            if (ret.second[0] != 'G') {
+                throw std::runtime_error("Receive didn't get G.");
+            }
+            server.send_string(client.first, "ready");
+
+            while (true) {
+                std::string n_str = server.receive_string(client.first);
+                queue_in.send_message(client_id, "E|" + n_str);
+
+                ret = queue_out.receive_message(client_id);
+                if (ret.second[0] == 'W') {
+                    server.send_string(client.first, "0|0");
+                    break;
+                }
+                if (ret.second[0] == 'O') {
+                    int cnt = std::stoi(ret.second.substr(2));
+                    ret = queue_out.receive_message(client_id);
+                    if (ret.second[0] == 'L') {
+                        server.send_string(client.first, ret.second[2] + "|0");
+                        break;
+                    }
+                    if (ret.second[0] == 'T') {
+                        int took = atoi(&ret.second[2]);
+                        cnt -= took;
+                        server.send_string(client.first, ret.second[2] + "|" + std::to_string(cnt));
+                    }
+                }
+            }
+
 
         } else if (command == "exit") {
             break;
@@ -223,9 +257,14 @@ int main() {
 
     DualSemaphore compile_semaphore(1, 0, 1, true);
     SharedMemory compile_shm(1, 256, true);
+    MsgQueue play_queue_in(1, true); // data to game_process
+    MsgQueue play_queue_out(2, true); // data from game_process
 
     ProcessCompiler compiler("compiler");
     compiler.start();
+
+    ProcessGame game("game");
+    game.start();
 
     std::thread cmdThread(commandListener, std::ref(server));
     std::vector<std::thread> threads;
@@ -234,7 +273,8 @@ int main() {
         try {
             auto clt = server.accept();
             if (clt.first > 0) {
-                threads.emplace_back(process_client, std::ref(server), clt, std::ref(compile_shm), std::ref(compile_semaphore));
+                threads.emplace_back(process_client, std::ref(server), clt, std::ref(compile_shm),
+                    std::ref(compile_semaphore), std::ref(play_queue_in), std::ref(play_queue_out));
             }
         } catch (const std::exception& e) {
             if (server.socket_available()) {
@@ -256,9 +296,12 @@ int main() {
         cmdThread.join();
     }
     compiler.stop();
+    game.stop();
 
     compile_shm.detach(true);
     compile_semaphore.detach(true);
+    play_queue_in.detach(true);
+    play_queue_out.detach(true);
 
     std::cout << "Server threads finished successfully.\nFinishing with exit code 0." << std::endl;
     return 0;
