@@ -26,6 +26,7 @@ MsgQueue::MsgQueue(int id, bool create) {
 void MsgQueue::detach(bool remove) const {
     if (remove) {
         msgctl(msg_id, IPC_RMID, nullptr);
+        std::remove(path.c_str());
     }
 }
 

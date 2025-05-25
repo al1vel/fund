@@ -211,19 +211,26 @@ void process_client(Server& server, std::pair<int, sockaddr_in> client, SharedMe
                 ret = queue_out.receive_message(client_id);
                 if (ret.second[0] == 'W') {
                     server.send_string(client.first, "0|0");
+                    std::cout << "Main server sent1: <0|0>" << std::endl;
                     break;
                 }
                 if (ret.second[0] == 'O') {
                     int cnt = std::stoi(ret.second.substr(2));
                     ret = queue_out.receive_message(client_id);
                     if (ret.second[0] == 'L') {
-                        server.send_string(client.first, ret.second[2] + "|0");
+                        int took = std::stoi(ret.second.substr(2));
+                        std::string pck(std::to_string(took) + "|0");
+                        server.send_string(client.first, pck);
+                        std::cout << "Main server sent2: <" << pck << ">" << std::endl;
                         break;
                     }
                     if (ret.second[0] == 'T') {
-                        int took = atoi(&ret.second[2]);
+                        //std::cout << "ret: <" << ret.second << ">" << std::endl;
+                        int took = std::stoi(ret.second.substr(2));
                         cnt -= took;
-                        server.send_string(client.first, ret.second[2] + "|" + std::to_string(cnt));
+                        std::string pck(std::to_string(took) + "|" + std::to_string(cnt));
+                        server.send_string(client.first, pck);
+                        std::cout << "Main server sent3: <" << pck << ">" << std::endl;
                     }
                 }
             }

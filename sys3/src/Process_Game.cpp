@@ -33,6 +33,9 @@ void ProcessGame::start() {
 
             } else if (packet.second[0] == 'E') {
                 int n = atoi(&packet.second[2]);
+                if (n > data[packet.first]) {
+                    n = data[packet.first];
+                }
                 data[packet.first] -= n;
 
                 if (data[packet.first] <= 0) {
