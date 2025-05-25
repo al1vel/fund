@@ -32,13 +32,13 @@ void ProcessGame::start() {
                 msg_queue_out.send_message(packet.first, "G");
 
             } else if (packet.second[0] == 'E') {
-                int n = atoi(&packet.second[2]);
+                unsigned int n = atoi(&packet.second[2]);
                 if (n > data[packet.first]) {
                     n = data[packet.first];
                 }
                 data[packet.first] -= n;
 
-                if (data[packet.first] <= 0) {
+                if (data[packet.first] == 0) {
                     msg_queue_out.send_message(packet.first, "W");
                     std::cout << "Client " << packet.first << " won the game." << std::endl;
                 } else {

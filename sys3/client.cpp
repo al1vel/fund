@@ -162,9 +162,6 @@ int main() {
 
             size_t total_sent = 0, total_bytes = file_size;
 
-            if (file_size == -1) {
-                throw std::runtime_error("Unable to get file size.");
-            }
             if (file_size % 1024 != 0) {
                 file_size = file_size / 1024 + 1;
             } else {
