@@ -116,8 +116,14 @@ int main() {
                     std::cout << "You won!" << std::endl;
                     break;
                 }
-                int comp_took = std::stoi(answer.substr(0, answer.find('|')));
-                int stones_left = std::stoi(answer.substr(answer.find('|')));
+
+                std::string comp_took_str = answer.substr(0, answer.find('|'));
+                std::string left_str = answer.substr(answer.find('|') + 1);
+
+                int comp_took = std::stoi(comp_took_str);
+                std::cout << "Comp took: " << comp_took << std::endl;
+                int stones_left = std::stoi(left_str);
+                std::cout << "Left: " << stones_left << std::endl;
 
                 if (stones_left == 0) {
                     std::cout << "Computer took " << comp_took << " stones.\nYou lost!" << std::endl;
