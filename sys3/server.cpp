@@ -10,6 +10,8 @@
 #include <fstream>
 #include "Process_Compiler.h"
 #include <sys/sem.h>
+#include "SharedMemory.h"
+#include "DualSemaphore.h"
 
 
 class Server {
@@ -165,30 +167,10 @@ void commandListener(Server &server) {
     }
 }
 
-union semun {
-    int val;
-    struct semid_ds *buf;
-    unsigned short *array;
-};
-
-void init_semaphores(int semid) {
-    union semun arg{};
-    unsigned short values[2] = {0, 1};
-    arg.array = values;
-    if (semctl(semid, 0, SETALL, arg) == -1) {
-        perror("semctl SETALL");
-        exit(EXIT_FAILURE);
-    }
-}
-
 int main() {
     Server server(5000, 10);
     server.bind();
     server.listen();
-
-    std::ofstream("sem.key").put('\n');
-    key_t sem_key = ftok("sem.key", 1);
-    int sem_id = semget(sem_key, 2, 0666 | IPC_CREAT);
 
     ProcessCompiler compiler("compiler");
     compiler.start();
@@ -225,9 +207,6 @@ int main() {
     if (!compiler.wait()) {
         std::cerr << "Compiler process didn't finish properly." << std::endl;
     }
-
-    semctl(sem_id, 0, IPC_RMID);
-    remove("sem.key");
 
     std::cout << "Server threads finished successfully.\nFinishing with exit code 0." << std::endl;
     return 0;
