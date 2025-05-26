@@ -151,12 +151,10 @@ public:
 
 void process_client(Server& server, std::pair<int, sockaddr_in> client, SharedMemory& shm, DualSemaphore& sem,
     MsgQueue& queue_in, MsgQueue& queue_out, std::shared_ptr<Logger> logger) {
-    //std::cout << "Client " << client.second.sin_addr.s_addr << " connected to the server." << std::endl;
     logger->info("[SERVER]: Client " + std::to_string(client.second.sin_addr.s_addr) + " connected.");
 
     while (true) {
         std::string command = server.receive_string(client.first);
-        //std::cout << "Command: " << command << std::endl;
         logger->debug("[SERVER]: Got command <" + command + "> from client " + std::to_string(client.second.sin_addr.s_addr));
 
         std::string file_name = std::to_string(client.second.sin_addr.s_addr) + "_in.cpp";
@@ -176,7 +174,6 @@ void process_client(Server& server, std::pair<int, sockaddr_in> client, SharedMe
                 fwrite(buffer, sizeof(char), buf.size(), file_cpp);
             }
             fclose(file_cpp);
-            //std::cout << "Got file!" << std::endl;
             logger->info("[SERVER]: Got file from client " + std::to_string(client.second.sin_addr.s_addr));
 
             sem.wait_for(0, 1);
@@ -186,14 +183,12 @@ void process_client(Server& server, std::pair<int, sockaddr_in> client, SharedMe
 
             sem.wait_for(1, 1);
             std::string ret = shm.read();
-            //std::cout << ret << std::endl;
+
             if (ret == "fail") {
-                //std::cout << "Compilation failed!" << std::endl;
                 logger->error("[SERVER]: Compilation for client " + std::to_string(client.second.sin_addr.s_addr) + "failed.");
                 server.send_string(client.first, "failed");
                 std::remove(file_name.c_str());
             } else {
-                //std::cout << "Compilation successful!\nOut file: " << ret << std::endl;
                 logger->info("[SERVER]: Compilation for client " + std::to_string(client.second.sin_addr.s_addr) + " successfully done.");
                 long out_size = get_file_size(ret.c_str());
                 if (out_size == -1) {
@@ -219,7 +214,6 @@ void process_client(Server& server, std::pair<int, sockaddr_in> client, SharedMe
                 fclose(out);
                 std::remove(ret.c_str());
                 std::remove(file_name.c_str());
-                //std::cout << "File sent." << std::endl;
                 logger->info("[SERVER]: File sent to client " + std::to_string(client.second.sin_addr.s_addr));
             }
             sem.down(0);
@@ -240,7 +234,6 @@ void process_client(Server& server, std::pair<int, sockaddr_in> client, SharedMe
                 ret = queue_out.receive_message(client_id);
                 if (ret.second[0] == 'W') {
                     server.send_string(client.first, "0|0");
-                    //std::cout << "Main server sent1: <0|0>" << std::endl;
                     break;
                 }
                 if (ret.second[0] == 'O') {
@@ -250,16 +243,13 @@ void process_client(Server& server, std::pair<int, sockaddr_in> client, SharedMe
                         int took = std::stoi(ret.second.substr(2));
                         std::string pck(std::to_string(took) + "|0");
                         server.send_string(client.first, pck);
-                        //std::cout << "Main server sent2: <" << pck << ">" << std::endl;
                         break;
                     }
                     if (ret.second[0] == 'T') {
-                        //std::cout << "ret: <" << ret.second << ">" << std::endl;
                         int took = std::stoi(ret.second.substr(2));
                         cnt -= took;
                         std::string pck(std::to_string(took) + "|" + std::to_string(cnt));
                         server.send_string(client.first, pck);
-                        //std::cout << "Main server sent3: <" << pck << ">" << std::endl;
                     }
                 }
             }
@@ -270,7 +260,6 @@ void process_client(Server& server, std::pair<int, sockaddr_in> client, SharedMe
         }
     }
     close(client.first);
-    //std::cout << "Client " << client.second.sin_addr.s_addr << " disconnected." << std::endl;
     logger->info("[SERVER]: Client " + std::to_string(client.second.sin_addr.s_addr) + " disconnected.");
 }
 
@@ -281,7 +270,6 @@ void commandListener(Server &server) {
         if (line == "close") {
             server.shutdown();
             server.stop();
-            //std::cout << "Stopping server by command CLOSE" << std::endl;
             break;
         }
     }
@@ -325,7 +313,6 @@ int main() {
                 std::cerr << "Error on accept: " << e.what() << std::endl;
                 logger->error("[SERVER]: Error on accept.");
             } else {
-                //std::cout << "Server socket closed, stopping accept loop" << std::endl;
                 logger->info("[SERVER]: Stopping accept loop.");
                 break;
             }
@@ -349,7 +336,6 @@ int main() {
     play_queue_in.detach(true);
     play_queue_out.detach(true);
 
-    //std::cout << "Server threads finished successfully.\nFinishing with exit code 0." << std::endl;
     logger->info("[SERVER]: Finishing with exit code 0.");
     return 0;
 }

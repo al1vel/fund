@@ -20,7 +20,6 @@ void ProcessCompiler::start() {
     }
 
     if (pid == 0) {
-        //std::cout << "Process " << name << " started" << std::endl;
         logger->info("[COMPILER]: Started compiler process.");
         SharedMemory shm(1, 256, false, logger);
         DualSemaphore sem(1, 0, 0, false, logger);
@@ -28,10 +27,8 @@ void ProcessCompiler::start() {
         while (true) {
             sem.wait_for(1, 0);
             std::string msg = shm.read();
-            //std::cout << "Compiler got: " << msg << std::endl;
 
             std::string command = "g++ " + msg + " -o " + msg.substr(0, msg.find('.'));
-            //std::cout << "<" << command << ">" << std::endl;
 
             int result = system(command.c_str());
             if (result == 0) {
@@ -66,6 +63,5 @@ void ProcessCompiler::stop() const {
             perror("kill");
         }
     }
-    //std::cout << "Process " << name << " stopped." << std::endl;
     logger->info("[COMPILER]: Process stopped.");
 }

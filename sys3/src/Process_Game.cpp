@@ -21,7 +21,6 @@ void ProcessGame::start() {
     }
 
     if (pid == 0) {
-        //std::cout << "Process " << name << " started" << std::endl;
         logger->info("[PLAY]: Started process.");
         MsgQueue msg_queue_in(1, false, logger);
         MsgQueue msg_queue_out(2, false, logger);
@@ -31,7 +30,6 @@ void ProcessGame::start() {
         while (true) {
             std::pair<long, std::string> packet = msg_queue_in.receive_message(0);
             if (packet.second[0] == 'S') {
-                //std::cout << "Client " << packet.first << " started the game." << std::endl;
                 logger->info("[PLAY]: Client " + std::to_string(packet.first) + " started the game.");
                 data[packet.first] = 21;
                 msg_queue_out.send_message(packet.first, "G");
@@ -45,11 +43,9 @@ void ProcessGame::start() {
 
                 if (data[packet.first] == 0) {
                     msg_queue_out.send_message(packet.first, "W");
-                    //std::cout << "Client " << packet.first << " won the game." << std::endl;
                     logger->info("[PLAY]: Client " + std::to_string(packet.first) + " won the game.");
                 } else {
                     msg_queue_out.send_message(packet.first, "O|" + std::to_string(data[packet.first]));
-                    //std::cout << "Client " << packet.first << " took " << n << " in the game " << std::to_string(data[packet.first]) << " left." << std::endl;
                     logger->debug("[PLAY]: Client " + std::to_string(packet.first)
                         + " took " + std::to_string(n) + " in the game "
                         + std::to_string(data[packet.first]) + " left.");
@@ -65,13 +61,11 @@ void ProcessGame::start() {
                     data[packet.first] -= number;
                     if (data[packet.first] <= 0) {
                         msg_queue_out.send_message(packet.first, "L|" + std::to_string(number));
-                        //std::cout << "Client " << packet.first << " lost the game." << std::endl;
                         logger->info("[PLAY]: Client " + std::to_string(packet.first) + " lost the game.");
                         data.erase(packet.first);
 
                     } else {
                         msg_queue_out.send_message(packet.first, "T|" + std::to_string(number));
-                        //std::cout << "Client " << packet.first << ": server took " << number << std::endl;
                         logger->debug("[PLAY]: Client " + std::to_string(packet.first) + ": server took " + std::to_string(number));
                     }
                 }
@@ -103,6 +97,5 @@ void ProcessGame::stop() const {
             perror("kill");
         }
     }
-    //std::cout << "Process " << name << " stopped." << std::endl;
     logger->info("[PLAY]: Process stopped.");
 }
