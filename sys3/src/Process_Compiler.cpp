@@ -6,25 +6,29 @@
 #include <SharedMemory.h>
 #include <utility>
 
-ProcessCompiler::ProcessCompiler(std::string name) : name(std::move(name)) {}
+ProcessCompiler::ProcessCompiler(std::string name, const std::shared_ptr<Logger> &logger) : name(std::move(name)) {
+    this->logger = logger;
+}
 
 ProcessCompiler::~ProcessCompiler() = default;
 
 void ProcessCompiler::start() {
     pid = fork();
     if (pid < 0) {
+        logger->error("[COMPILER]: fork failed.");
         throw std::runtime_error("Compiler fork failed.");
     }
 
     if (pid == 0) {
-        std::cout << "Process " << name << " started" << std::endl;
-        SharedMemory shm(1, 256, false);
-        DualSemaphore sem(1, 0, 0, false);
+        //std::cout << "Process " << name << " started" << std::endl;
+        logger->info("[COMPILER]: Started compiler process.");
+        SharedMemory shm(1, 256, false, logger);
+        DualSemaphore sem(1, 0, 0, false, logger);
 
         while (true) {
             sem.wait_for(1, 0);
             std::string msg = shm.read();
-            std::cout << "Compiler got: " << msg << std::endl;
+            //std::cout << "Compiler got: " << msg << std::endl;
 
             std::string command = "g++ " + msg + " -o " + msg.substr(0, msg.find('.'));
             //std::cout << "<" << command << ">" << std::endl;
@@ -62,5 +66,6 @@ void ProcessCompiler::stop() const {
             perror("kill");
         }
     }
-    std::cout << "Process " << name << " stopped." << std::endl;
+    //std::cout << "Process " << name << " stopped." << std::endl;
+    logger->info("[COMPILER]: Process stopped.");
 }

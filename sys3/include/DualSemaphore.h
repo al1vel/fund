@@ -1,5 +1,7 @@
 #ifndef DUALSEMAPHORE_H
 #define DUALSEMAPHORE_H
+#include <Logger.h>
+#include <memory>
 #include <string>
 
 union semun {
@@ -12,9 +14,10 @@ class DualSemaphore {
 private:
     std::string path;
     int sem_id = -1;
+    std::shared_ptr<Logger> logger;
 
 public:
-    DualSemaphore(int id, unsigned short first_val, unsigned short second_val, bool create);
+    DualSemaphore(int id, unsigned short first_val, unsigned short second_val, bool create, const std::shared_ptr<Logger> &logger);
 
     ~DualSemaphore();
 

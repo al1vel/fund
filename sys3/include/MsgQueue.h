@@ -1,6 +1,8 @@
 #ifndef MSGQUEUE_H
 #define MSGQUEUE_H
 #include <string>
+#include <memory>
+#include <Logger.h>
 
 struct message_buffer {
     long mtype;
@@ -11,9 +13,10 @@ class MsgQueue {
 private:
     int msg_id = -1;
     std::string path;
+    std::shared_ptr<Logger> logger;
 
 public:
-    MsgQueue(int id, bool create);
+    MsgQueue(int id, bool create, const std::shared_ptr<Logger> &logger);
 
     void detach(bool remove) const;
 

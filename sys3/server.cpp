@@ -17,104 +17,8 @@
 #include "Process_Game.h"
 #include <memory>
 #include <ctime>
-#include <sstream>
 #include <iomanip>
-
-class LoggerBuilder;
-
-class Logger {
-private:
-    friend class LoggerBuilder;
-    std::vector<std::ostream*> handlers;
-    std::vector<std::unique_ptr<std::ostream>> own_handlers;
-    unsigned int log_level;
-
-    Logger() {
-        log_level = INFO;
-    }
-
-    std::string timestamp() {
-        std::time_t now = std::time(nullptr);
-        std::tm* tm_ptr = std::localtime(&now);
-
-        std::ostringstream oss;
-        oss << std::put_time(tm_ptr, "%Y-%m-%d %H:%M:%S");
-        return oss.str();
-    }
-
-    void log(unsigned int level, const std::string& label, const std::string& msg) {
-        if (level > log_level) {
-            return;
-        }
-        for (auto&& out : handlers) {
-            (*out) << timestamp() + " --> " << label << ": " << msg << std::endl;
-        }
-    }
-
-public:
-    enum {
-        CRITICAL = 0,
-        ERROR = 1,
-        WARNING = 2,
-        INFO = 3,
-        DEBUG = 4
-    };
-
-    ~Logger() {
-        std::cout << "Logger destroyed." << std::endl << "All own handlers closed." << std::endl;
-    }
-
-
-    void critical(const std::string& msg) {
-        log(CRITICAL, "CRITICAL", msg);
-    }
-    void error(const std::string& msg) {
-        log(ERROR, "ERROR", msg);
-    }
-    void warning(const std::string& msg) {
-        log(WARNING, "WARNING", msg);
-    }
-    void info(const std::string& msg) {
-        log(INFO, "INFO", msg);
-    }
-    void debug(const std::string& msg) {
-        log(DEBUG, "DEBUG", msg);
-    }
-};
-
-class LoggerBuilder {
-private:
-    Logger* logger = nullptr;
-
-public:
-    LoggerBuilder() {
-        this->logger = new Logger();
-    }
-
-    LoggerBuilder& set_level(unsigned int log_level) {
-        this->logger->log_level = log_level;
-        if (log_level > Logger::DEBUG) {
-            std::cout << "Provided log level is doesn't exist!\nDEBUG mode was used." << std::endl;
-            this->logger->log_level = Logger::DEBUG;
-        }
-        return *this;
-    }
-
-    LoggerBuilder& add_handler(std::ostream& stream) {
-        this->logger->handlers.push_back(&stream);
-        return *this;
-    }
-
-    LoggerBuilder& add_handler(std::unique_ptr<std::ostream> stream) {
-        this->logger->handlers.push_back(stream.get());
-        this->logger->own_handlers.push_back(std::move(stream));
-        return *this;
-    }
-
-    [[nodiscard]] Logger* make_object() const {
-        return this->logger;
-    }
-};
+#include "Logger.h"
 
 long get_file_size(const char* filename) {
     struct stat st{};
@@ -131,28 +35,35 @@ private:
     int port;
     int max_clients;
     sockaddr_in address{};
+    std::shared_ptr<Logger> logger;
 
 public:
-    Server(int port, int max_clients) : port(port), max_clients(max_clients) {
+    Server(int port, int max_clients, std::shared_ptr<Logger> logger) : port(port), max_clients(max_clients) {
+        this->logger = logger;
         server_socket = socket(AF_INET, SOCK_STREAM, 0);
         if (server_socket == -1) {
+            logger->error("[SERVER]: Failed to create server socket.");
             throw std::runtime_error("Error creating server socket.");
         }
 
         address.sin_family = AF_INET;
         address.sin_addr.s_addr = INADDR_ANY;
         address.sin_port = htons(port);
+        logger->info("[SERVER]: Server started.");
     }
 
     void bind() {
         if (::bind(server_socket, (struct sockaddr*)&address, sizeof(address)) < 0) {
+            logger->error("[SERVER]: Failed to bind server socket.");
             throw std::runtime_error("Bind failed.");
         }
+        logger->info("[SERVER]: Socket binded.");
     }
 
     void listen() const {
         if(::listen(server_socket, max_clients) < 0){
             throw std::runtime_error("Listen failed.");
+            logger->error("[SERVER]: Failed to listen on socket.");
         }
     }
 
@@ -162,6 +73,7 @@ public:
         int client_socket;
         if((client_socket = ::accept(server_socket, (struct sockaddr*)&client_address, &addr_len)) == -1){
             throw std::runtime_error("Accept failed.");
+            logger->error("[SERVER]: Accept failed.");
         }
         return std::make_pair(client_socket, client_address);
     }
@@ -170,9 +82,11 @@ public:
         ssize_t sent_bytes = send(client_socket, &size, sizeof(size), 0);
         if (sent_bytes == -1) {
             throw std::runtime_error("Send 1 failed.");
+            logger->error("[SERVER]: Send size failed.");
         }
         if ((sent_bytes = send(client_socket, buff, size, 0)) == -1) {
             throw std::runtime_error("Send 2 failed.");
+            logger->error("[SERVER]: Send content failed.");
         }
         return sent_bytes;
     }
@@ -182,12 +96,14 @@ public:
         ssize_t rcv_bytes = recv(client_socket, &len, sizeof(len), 0);
         if (rcv_bytes  == -1) {
             throw std::runtime_error("Receive 1 failed.");
+            logger->error("[SERVER]: Receive size failed.");
         }
 
         std::vector<char> buf(len);
         rcv_bytes = recv(client_socket, buf.data(), len, 0);
         if (rcv_bytes == -1){
             throw std::runtime_error("Receive 2 failed.");
+            logger->error("[SERVER]: Receive content failed.");
         }
         return buf;
     }
@@ -206,9 +122,11 @@ public:
         if(server_socket != -1){
             close(server_socket);
             server_socket = -1;
+            logger->info("[SERVER]: Server socket closed.");
         }
         else{
             throw std::runtime_error("Close failed.");
+            logger->error("[SERVER]: Close failed.");
         }
     }
 
@@ -216,6 +134,7 @@ public:
         if(server_socket != -1){
             close(server_socket);
         }
+        logger->info("[SERVER]: Server stopped.");
     }
 
     bool socket_available() const {
@@ -230,12 +149,15 @@ public:
     }
 };
 
-void process_client(Server& server, std::pair<int, sockaddr_in> client, SharedMemory& shm, DualSemaphore& sem, MsgQueue& queue_in, MsgQueue& queue_out) {
-    std::cout << "Client " << client.second.sin_addr.s_addr << " connected to the server." << std::endl;
+void process_client(Server& server, std::pair<int, sockaddr_in> client, SharedMemory& shm, DualSemaphore& sem,
+    MsgQueue& queue_in, MsgQueue& queue_out, std::shared_ptr<Logger> logger) {
+    //std::cout << "Client " << client.second.sin_addr.s_addr << " connected to the server." << std::endl;
+    logger->info("[SERVER]: Client " + std::to_string(client.second.sin_addr.s_addr) + " connected.");
 
     while (true) {
         std::string command = server.receive_string(client.first);
-        std::cout << "Command: " << command << std::endl;
+        //std::cout << "Command: " << command << std::endl;
+        logger->debug("[SERVER]: Got command <" + command + "> from client " + std::to_string(client.second.sin_addr.s_addr));
 
         std::string file_name = std::to_string(client.second.sin_addr.s_addr) + "_in.cpp";
 
@@ -245,6 +167,7 @@ void process_client(Server& server, std::pair<int, sockaddr_in> client, SharedMe
             FILE* file_cpp = fopen(file_name.c_str(), "wb");
             if (file_cpp == nullptr) {
                 throw std::runtime_error("Temp file could not be opened.");
+                logger->error("[SERVER]: Temp file could not be opened.");
             }
             int sz = atoi(file_size.c_str());
             for (int i = 0; i < sz; ++i) {
@@ -253,7 +176,8 @@ void process_client(Server& server, std::pair<int, sockaddr_in> client, SharedMe
                 fwrite(buffer, sizeof(char), buf.size(), file_cpp);
             }
             fclose(file_cpp);
-            std::cout << "Got file!" << std::endl;
+            //std::cout << "Got file!" << std::endl;
+            logger->info("[SERVER]: Got file from client " + std::to_string(client.second.sin_addr.s_addr));
 
             sem.wait_for(0, 1);
             sem.down(1);
@@ -264,14 +188,17 @@ void process_client(Server& server, std::pair<int, sockaddr_in> client, SharedMe
             std::string ret = shm.read();
             //std::cout << ret << std::endl;
             if (ret == "fail") {
-                std::cout << "Compilation failed!" << std::endl;
+                //std::cout << "Compilation failed!" << std::endl;
+                logger->error("[SERVER]: Compilation for client " + std::to_string(client.second.sin_addr.s_addr) + "failed.");
                 server.send_string(client.first, "failed");
                 std::remove(file_name.c_str());
             } else {
-                std::cout << "Compilation successful!\nOut file: " << ret << std::endl;
+                //std::cout << "Compilation successful!\nOut file: " << ret << std::endl;
+                logger->info("[SERVER]: Compilation for client " + std::to_string(client.second.sin_addr.s_addr) + " successfully done.");
                 long out_size = get_file_size(ret.c_str());
                 if (out_size == -1) {
                     throw std::runtime_error("Output file size could not be read.");
+                    logger->error("[SERVER]: Output file size could not be read.");
                 }
                 if (out_size % 1024 != 0) {
                     out_size = out_size / 1024 + 1;
@@ -281,6 +208,7 @@ void process_client(Server& server, std::pair<int, sockaddr_in> client, SharedMe
                 FILE* out = fopen(ret.c_str(), "rb");
                 if (out == nullptr) {
                     throw std::runtime_error("Temp out file could not be opened.");
+                    logger->error("[SERVER]: Temp out file could not be opened.");
                 }
 
                 server.send_string(client.first, std::to_string(out_size));
@@ -291,7 +219,8 @@ void process_client(Server& server, std::pair<int, sockaddr_in> client, SharedMe
                 fclose(out);
                 std::remove(ret.c_str());
                 std::remove(file_name.c_str());
-                std::cout << "File sent." << std::endl;
+                //std::cout << "File sent." << std::endl;
+                logger->info("[SERVER]: File sent to client " + std::to_string(client.second.sin_addr.s_addr));
             }
             sem.down(0);
 
@@ -311,7 +240,7 @@ void process_client(Server& server, std::pair<int, sockaddr_in> client, SharedMe
                 ret = queue_out.receive_message(client_id);
                 if (ret.second[0] == 'W') {
                     server.send_string(client.first, "0|0");
-                    std::cout << "Main server sent1: <0|0>" << std::endl;
+                    //std::cout << "Main server sent1: <0|0>" << std::endl;
                     break;
                 }
                 if (ret.second[0] == 'O') {
@@ -321,7 +250,7 @@ void process_client(Server& server, std::pair<int, sockaddr_in> client, SharedMe
                         int took = std::stoi(ret.second.substr(2));
                         std::string pck(std::to_string(took) + "|0");
                         server.send_string(client.first, pck);
-                        std::cout << "Main server sent2: <" << pck << ">" << std::endl;
+                        //std::cout << "Main server sent2: <" << pck << ">" << std::endl;
                         break;
                     }
                     if (ret.second[0] == 'T') {
@@ -330,7 +259,7 @@ void process_client(Server& server, std::pair<int, sockaddr_in> client, SharedMe
                         cnt -= took;
                         std::string pck(std::to_string(took) + "|" + std::to_string(cnt));
                         server.send_string(client.first, pck);
-                        std::cout << "Main server sent3: <" << pck << ">" << std::endl;
+                        //std::cout << "Main server sent3: <" << pck << ">" << std::endl;
                     }
                 }
             }
@@ -341,7 +270,8 @@ void process_client(Server& server, std::pair<int, sockaddr_in> client, SharedMe
         }
     }
     close(client.first);
-    std::cout << "Client " << client.second.sin_addr.s_addr << " disconnected." << std::endl;
+    //std::cout << "Client " << client.second.sin_addr.s_addr << " disconnected." << std::endl;
+    logger->info("[SERVER]: Client " + std::to_string(client.second.sin_addr.s_addr) + " disconnected.");
 }
 
 void commandListener(Server &server) {
@@ -351,31 +281,33 @@ void commandListener(Server &server) {
         if (line == "close") {
             server.shutdown();
             server.stop();
-            std::cout << "Stopping server by command CLOSE" << std::endl;
+            //std::cout << "Stopping server by command CLOSE" << std::endl;
             break;
         }
     }
 }
 
 int main() {
-    Logger* my_logger = LoggerBuilder()
-                            .set_level(Logger::INFO)
-                            .add_handler(std::cout)
-                            .make_object();
+    auto logger = LoggerBuilder()
+        .set_level(Logger::DEBUG)
+        .add_handler(std::cout)
+        .add_handler(std::make_unique<std::ofstream>("/home/begemot/fund/sys3/log.txt"))
+        .make_object();
+    logger->info("Logger initialized");
 
-    Server server(5000, 10);
+    Server server(5000, 10, logger);
     server.bind();
     server.listen();
 
-    DualSemaphore compile_semaphore(1, 0, 1, true);
-    SharedMemory compile_shm(1, 256, true);
-    MsgQueue play_queue_in(1, true); // data to game_process
-    MsgQueue play_queue_out(2, true); // data from game_process
+    DualSemaphore compile_semaphore(1, 0, 1, true, logger);
+    SharedMemory compile_shm(1, 256, true, logger);
+    MsgQueue play_queue_in(1, true, logger); // data to game_process
+    MsgQueue play_queue_out(2, true, logger); // data from game_process
 
-    ProcessCompiler compiler("compiler");
+    ProcessCompiler compiler("compiler", logger);
     compiler.start();
 
-    ProcessGame game("game");
+    ProcessGame game("game", logger);
     game.start();
 
     std::thread cmdThread(commandListener, std::ref(server));
@@ -386,13 +318,15 @@ int main() {
             auto clt = server.accept();
             if (clt.first > 0) {
                 threads.emplace_back(process_client, std::ref(server), clt, std::ref(compile_shm),
-                    std::ref(compile_semaphore), std::ref(play_queue_in), std::ref(play_queue_out));
+                    std::ref(compile_semaphore), std::ref(play_queue_in), std::ref(play_queue_out), logger);
             }
         } catch (const std::exception& e) {
             if (server.socket_available()) {
                 std::cerr << "Error on accept: " << e.what() << std::endl;
+                logger->error("[SERVER]: Error on accept.");
             } else {
-                std::cout << "Server socket closed, stopping accept loop" << std::endl;
+                //std::cout << "Server socket closed, stopping accept loop" << std::endl;
+                logger->info("[SERVER]: Stopping accept loop.");
                 break;
             }
         }
@@ -415,6 +349,7 @@ int main() {
     play_queue_in.detach(true);
     play_queue_out.detach(true);
 
-    std::cout << "Server threads finished successfully.\nFinishing with exit code 0." << std::endl;
+    //std::cout << "Server threads finished successfully.\nFinishing with exit code 0." << std::endl;
+    logger->info("[SERVER]: Finishing with exit code 0.");
     return 0;
 }

@@ -1,15 +1,17 @@
 #ifndef PROCESS_H
 #define PROCESS_H
 
-#include <iostream>
+#include <Logger.h>
+#include <memory>
 
 class ProcessCompiler {
 private:
     pid_t pid = -1;
     std::string name;
+    std::shared_ptr<Logger> logger;
 
 public:
-    explicit ProcessCompiler(std::string name);
+    explicit ProcessCompiler(std::string name, const std::shared_ptr<Logger> &logger);
     ~ProcessCompiler();
 
     void start();
