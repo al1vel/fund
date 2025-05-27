@@ -16,8 +16,8 @@ ProcessGame::~ProcessGame() = default;
 void ProcessGame::start() {
     pid = fork();
     if (pid < 0) {
-        throw std::runtime_error("Compiler fork failed.");
         logger->error("[PLAY]: Fork failed.");
+        throw std::runtime_error("Compiler fork failed.");
     }
 
     if (pid == 0) {

@@ -69,13 +69,13 @@ int main() {
     serv_addr.sin_port = htons(5000);
 
     if (inet_pton(AF_INET, "127.0.0.1", &serv_addr.sin_addr) <= 0) {
-        std::cerr << "Invalid address\n";
-        return 1;
+        std::cout << "Invalid address/ Address not supported." << std::endl;
+        return -1;
     }
 
     if (connect(client_socket, (struct sockaddr*)&serv_addr, sizeof(serv_addr)) < 0) {
-        perror("connection failed");
-        return 1;
+        std::cout << "Connect failed." << std::endl;
+        return -2;
     }
 
     std::cout << "Connected to server.\nAvailable commands:\n  1. play\n  2. compile\n  3. exit\n" << std::endl;
@@ -89,8 +89,22 @@ int main() {
             break;
         }
         if (command == "play") {
-            send_string(client_socket, "play");
-            std::string ret = receive_string(client_socket);
+            try {
+                send_string(client_socket, "play");
+            }
+            catch (const std::runtime_error& e) {
+                std::cout << "Fatal error: " << e.what() << std::endl;
+                return 0;
+            }
+
+            std::string ret;
+            try {
+                ret = receive_string(client_socket);
+            }
+            catch (const std::runtime_error& e) {
+                std::cout << "Fatal error: " << e.what() << std::endl;
+            }
+
             if (ret != "ready") {
                 std::cout << "Something bad happened on server. Try later..." << std::endl;
                 break;
@@ -108,10 +122,24 @@ int main() {
                 }
                 std::cout << "Enter a number between 1 and 3: ";
             }
-            send_string(client_socket, answer);
+
+            try {
+                send_string(client_socket, answer);
+            }
+            catch (const std::runtime_error& e) {
+                std::cout << "Fatal error: " << e.what() << std::endl;
+                return 0;
+            }
 
             while (true) {
-                answer = receive_string(client_socket);
+                try {
+                    answer = receive_string(client_socket);
+                }
+                catch (const std::runtime_error& e) {
+                    std::cout << "Fatal error: " << e.what() << std::endl;
+                    return 0;
+                }
+
                 if (answer == "0|0") {
                     std::cout << "You won!" << std::endl;
                     break;
@@ -139,7 +167,13 @@ int main() {
                     }
                     std::cout << "Enter a number between 1 and 3: ";
                 }
-                send_string(client_socket, answer);
+                try {
+                    send_string(client_socket, answer);
+                }
+                catch (const std::runtime_error& e) {
+                    std::cout << "Fatal error: " << e.what() << std::endl;
+                    return 0;
+                }
             }
 
         } else if (command == "compile") {
@@ -157,7 +191,14 @@ int main() {
                 }
             }
 
-            send_string(client_socket, "compile");
+            try {
+                send_string(client_socket, "compile");
+            }
+            catch (const std::runtime_error& e) {
+                std::cout << "Fatal error: " << e.what() << std::endl;
+                return 0;
+            }
+
             size_t file_size = get_file_size(file_path.c_str());
 
             size_t total_sent = 0, total_bytes = file_size;
@@ -167,7 +208,13 @@ int main() {
             } else {
                 file_size = file_size / 1024;
             }
-            send_string(client_socket, std::to_string(file_size));
+            try {
+                send_string(client_socket, std::to_string(file_size));
+            }
+            catch (const std::runtime_error& e) {
+                std::cout << "Fatal error: " << e.what() << std::endl;
+                return 0;
+            }
 
             char buffer[1024];
             size_t bytes_read;
@@ -180,7 +227,15 @@ int main() {
             std::cout << std::endl;
             fclose(file);
 
-            std::string size = receive_string(client_socket);
+            std::string size;
+            try {
+                size = receive_string(client_socket);
+            }
+            catch (const std::runtime_error& e) {
+                std::cout << "Fatal error: " << e.what() << std::endl;
+                return 0;
+            }
+
             if (size == "failed") {
                 std::cout << "Compilation failed." << std::endl;
 
