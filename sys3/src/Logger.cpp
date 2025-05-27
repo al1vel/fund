@@ -71,7 +71,7 @@ void Logger::debug(const std::string& msg) const {
 
 
 LoggerBuilder::LoggerBuilder() {
-    this->logger = std::make_unique<Logger>();
+    this->logger = std::make_shared<Logger>();
 }
 
 LoggerBuilder& LoggerBuilder::set_level(unsigned int log_level) {
