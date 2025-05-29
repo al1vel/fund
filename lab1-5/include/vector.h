@@ -193,7 +193,6 @@ namespace cont {
             if (len == 0) {
                 throw std::out_of_range("Popped empty vector.");
             }
-            //data_[len - 1].~T();
             std::allocator_traits<decltype(alloc)>::destroy(alloc, &data_[len - 1]);
             len--;
         }
@@ -219,7 +218,6 @@ namespace cont {
                 throw std::out_of_range("Erase index out of range.");
             }
             std::allocator_traits<decltype(alloc)>::destroy(alloc, &data_[index]);
-            //data_[index].~T();
             for (siz i = index; i < len - 1; ++i) {
                 data_[i] = data_[i + 1];
             }

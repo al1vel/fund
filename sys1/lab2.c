@@ -300,7 +300,7 @@ int funcCOPY(char *arg[], int fileCnt, int N) {
             return FORK_FAILURE;
         }
 
-        else if (pid == 0) {
+        if (pid == 0) {
             printf("%s - %d\n", arg[i], N);
 
             for (int k = 0; k < N; k++) {
@@ -355,22 +355,18 @@ int funcCOPY(char *arg[], int fileCnt, int N) {
 
 int funcFIND(char *arg[], int fileCnt, char *pattern) {
     pid_t pids[fileCnt];
-
     for (int i = 0; i < fileCnt; i++) {
         pid_t pid = fork();
-
         if (pid == -1) {
             printf("fork failed\n");
             return FORK_FAILURE;
         }
-
-        else if (pid == 0) {
+        if (pid == 0) {
             FILE *input = fopen(arg[i], "r");
             if (input == NULL) {
                 printf("File %s open failed.\n", arg[i]);
                 exit(-1);
             }
-
             char buffer[4096];
             size_t bytes;
             while ((bytes = fread(buffer, 1, sizeof(buffer), input)) > 0) {
@@ -384,21 +380,14 @@ int funcFIND(char *arg[], int fileCnt, char *pattern) {
             fclose(input);
             exit(0);
         }
-
-        else {
-            pids[i] = pid;
-        }
+        pids[i] = pid;
     }
-
     for (int i = 0; i < fileCnt; i++) {
         int status;
         waitpid(pids[i], &status, 0);
-
         if (WIFEXITED(status)) {
             int exit_code = WEXITSTATUS(status);
-            if (exit_code != SUCCESS) {
-                return FILE_OPEN_FAILURE;
-            }
+            if (exit_code != SUCCESS) { return FILE_OPEN_FAILURE; }
         } else {
             printf("Abnormal process finish.\n");
             return PROCESS_DIED;

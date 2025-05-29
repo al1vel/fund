@@ -89,19 +89,15 @@ int main() {
 
         char path[2048];
         strcpy(path, shm_ptr->text);
-        //printf("[Server]: got -  <%s>\n", path);
 
         size_t n = how_many_files(path);
         printf("[Server]: found %lu files.\n", n);
         for (size_t i = 0; i < n; i++) {
             write_needed_path(shm_ptr->text, i, path);
-            //printf("[Server]: sent path: <%s>\n", path);
             shm_ptr->client_wait = GO_GET;
             while (shm_ptr->client_wait != WAIT) {}
-            //printf("[Server]: client waits\n");
         }
         shm_ptr->who_talks = CLIENT;
-        //printf("[Server]: client talks!\n");
     }
 
     shm_ptr->who_talks = CLIENT;

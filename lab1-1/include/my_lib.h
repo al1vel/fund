@@ -320,3 +320,10 @@ namespace cont {
 }
 
 #endif //MY_LIB_H
+
+BigInt BigInt::operator-(const BigInt &other) const {
+    BigInt otherTmp = other;
+    otherTmp.isNegative = !otherTmp.isNegative;
+    BigInt result = *this + otherTmp;
+    return result;
+}

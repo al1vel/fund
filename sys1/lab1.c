@@ -153,16 +153,13 @@ int encrypt_password(const char *password, char **encrypted_password) {
     if (!salt) {
         return ENCRYPT_FAILURE;
     }
-
     void *enc_ctx = NULL;
     int enc_cxt_sz = 0;
     char *tmp_encrypted_password = crypt_ra(password, salt, &enc_ctx, &enc_cxt_sz);
-
     if (tmp_encrypted_password == NULL) {
         free(salt);
         return ENCRYPT_FAILURE;
     }
-
     *encrypted_password = (char *)calloc((strlen(tmp_encrypted_password) + 1), sizeof(char));
     strcpy(*encrypted_password, tmp_encrypted_password);
     free(enc_ctx);
@@ -173,12 +170,10 @@ int encrypt_password(const char *password, char **encrypted_password) {
 int compare_passwords(const char *password, const char *hashed_password, int *compare_res) {
     void *enc_ctx = NULL;
     int enc_cxt_sz = 0;
-
     char *hashed_entered_password = crypt_ra(password, hashed_password, &enc_ctx, &enc_cxt_sz);
     if (!hashed_entered_password) {
         return DECRYPT_FAILURE;
     }
-
     *compare_res = strcmp(hashed_password, hashed_entered_password);
     free(enc_ctx);
     return SUCCESS;
@@ -306,7 +301,6 @@ int loginUser() {
             printf("Login succeeded!\n\n");
             strcpy(username, login);
             availableCommandsCount = number;
-            //printf("com num: %d\n", availableCommandsCount);
             return SUCCESS;
         }
         printf("\nWrong password.\n1 - Register\n2 - Try again\n\n");
